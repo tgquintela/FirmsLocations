@@ -1,0 +1,8 @@
+
+		
+\section{Univariate study}
+		
+$list_vars_description
+		
+\newpage
+$contents

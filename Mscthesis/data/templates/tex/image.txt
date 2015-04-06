@@ -1,0 +1,12 @@
+
+
+\begin{figure}[H]
+\centering
+
+
+$graphics
+
+
+$caption
+\label{fig:$imagelabel}
+\end{figure}

@@ -1,0 +1,18 @@
+\documentclass[a4paper,10pt]{article}  %tipo de documento, pagina y tamaño letra
+\usepackage[left=3cm,top=2.9cm,right=2cm, bottom=3cm]{geometry}  %margenes
+\usepackage[utf8x]{inputenc}  %escribir con acentos
+\usepackage{ucs}  %escribir con acentos
+\usepackage[activeacute,spanish,english]{babel}  %paquete idioma
+\usepackage{amsmath}   %paquete mates
+\usepackage{amsfonts}   %paquetes matematicos
+\usepackage{amssymb}   %paquetes matematicos
+\usepackage{latexsym}  
+\usepackage{cancel}     %poder tachar en fórmulas con \cancel o \canceltozero
+\usepackage{graphicx}   %paquete imagenes
+%\usepackage{ulem}   %paquete subrayados
+\linespread{1}    %separacion lineas
+\pagestyle{plain}   %eliminar numero de pagina(se puede usar "plain" o "headings"
+\usepackage{float}   %fijar imagenes
+\usepackage{multicol}  %varias columnas 
+
+\usepackage{booktabs}

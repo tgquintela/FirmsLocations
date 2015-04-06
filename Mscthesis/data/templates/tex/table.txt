@@ -1,0 +1,15 @@
+
+
+\begin{table}[H]
+
+\centering
+		
+$tabular
+	
+$caption
+
+
+\label{tbl:$tablelabel}
+\end{table}
+
+		

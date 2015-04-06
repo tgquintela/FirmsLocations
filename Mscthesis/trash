@@ -1,0 +1,43 @@
+
+def histogram_plot(x, n_bins):
+    """A wrapper for the histogram function of pytplot. We set default values
+    according to our needs and a preprocesss of nan values.
+    """
+    ## 0. Preparing inputs
+    median = x.quantile(0.5)
+    # Filtering nan
+    x = np.array(x.dropna())
+
+    # 1. Plotting
+    fig = plt.figure()
+    plt.hist(x, n_bins)
+    plt.xlim([x.min(), x.max()])
+    # Mark of median
+    l1 = plt.axvline(median, linewidth=2, color='r', label='Median', linestyle='--')
+    # Mark of mean
+    l2 = plt.axvline(x.mean(), linewidth=2, color='k', label='Mean', linestyle='--')
+
+    ## 2. Making up
+    plt.xlabel('Value')
+    plt.ylabel('Counts')
+    plt.title('Histogram')
+    plt.grid(True)
+    #plt.text(60, .025, r'$\mu=100,\ \sigma=15$')
+    #Legend
+    plt.legend([l1, l2], ['Median', 'Mean'])
+
+    return fig
+
+
+def boxplot_plot(x):
+    ## 0. Preparing inputs
+    # Filtering nan
+    x = np.array(x.dropna())
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.boxplot(x, 0, 'rs', 0, 0.75)
+
+    ax.set_xlim([x.min(), x.max()])
+
+    return fig
