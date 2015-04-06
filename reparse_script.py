@@ -10,7 +10,7 @@ Script for parsing the data after being filtered with excel.
 ## Setting files
 texoutput = 'Data/results/tex_exploratory.tex'
 fileinstructions = 'Data/about_data/stats_instructions.csv'
-infilepath = 'Data/raw_data/SERVICIOS2'
+infilepath = 'Data/clean_data/cleaned_data/'
 outfilepath = 'Data/clean_data/SERVICIOS2'
 parserfiledata = 'Data/parse_process_data/'
 # Importing modules
@@ -22,7 +22,7 @@ import shelve
 ## Parsing task
 servicios_parser = Servicios_Parser(cleaned=False)
 servicios_parser.get_index_from_cleaned(infilepath)
-servicios_parser.parse_and_clean_by_file(infilepath, outfilepath)
+#servicios_parser.parse_and_clean_by_file(infilepath, outfilepath)
 
 ## Save data of the process
 parserobj = "parser_object.dat"
