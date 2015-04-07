@@ -4,9 +4,8 @@
 \centering
 
 
-$graphics
+\includegraphics[width=1.\textwidth]{$graphics}
 
-
-$caption
+\caption{$caption}
 \label{fig:$imagelabel}
 \end{figure}

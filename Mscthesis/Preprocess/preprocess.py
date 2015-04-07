@@ -83,3 +83,32 @@ def cnae2str(df):
     if 'cnae' in df.columns:
         df['cnae'] = df['cnae'].apply(cnae2str_ind)
     return df
+
+
+def to_float(df):
+    ## Columns which has to be numbers
+    cols = ['06Act', '07Act', '08Act', '09Act', '10Act', '11Act', '12Act',
+            '13Act', '06ActC', '07ActC', '08ActC', '09ActC', '10ActC',
+            '11ActC', '12ActC', '13ActC', '06Pasfijo', '07Pasfijo',
+            '08Pasfijo', '09Pasfijo', '10Pasfijo', '11Pasfijo', '12Pasfijo',
+            '13Pasfijo', '06Pasliq', '07Pasliq', '08Pasliq', '09Pasliq',
+            '10Pasliq', '11Pasliq', '12Pasliq', '13Pasliq', '06Va', '07Va',
+            '08Va', '09Va', '10Va', '11Va', '12Va', '13Va', '06Vtas', '07Vtas',
+            '08Vtas', '09Vtas', '10Vtas', '11Vtas', '12Vtas', '13Vtas']
+    ## Transformation
+    columns = df.columns
+    for col in columns:
+        if col in cols:
+            df[col] = df[col]
+    return df
+
+
+def to_int(df):
+    cols = ['06Trab', '07Trab', '08Trab', '09Trab', '10Trab', '11Trab',
+            '12Trab', '13Trab']
+    ## Transformation
+    columns = df.columns
+    for col in columns:
+        if col in cols:
+            df[col] = df[col].astype(int)
+    return df

@@ -8,6 +8,7 @@ More than one plot
 from string import Template
 from os.path import join
 import os
+import sys
 import pandas as pd
 import numpy as np
 
@@ -22,13 +23,15 @@ def describe2latex(study_info, stats):
 
     """
     ## 0. Needed variables
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
     os.mkdir(join(study_info['path'], 'Plots'))
     header = built_header()
     title = built_title(study_info)
     content = built_content(study_info, stats)
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/document_template.txt', "r")
+    templ_fl = join(this_dir, '../data/templates/tex/document_template.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(header=header, title=title,
                                                   content=content)
@@ -47,7 +50,7 @@ def built_content(study_info, stats):
     for st in stats:
         pages.append(page_builder(st, study_info))
 
-    content = '\newpage\n'.join(pages)
+    content = '\\newpage\n'.join(pages)
     return content
 
 
@@ -59,7 +62,9 @@ def built_title(study_info):
     #date = study_info['date']
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/portada.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/portada.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(title=title, author=author,
                                                   date='')
@@ -67,7 +72,9 @@ def built_title(study_info):
 
 
 def built_header():
-    file_ = open('../data/templates/tex/header.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/header.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     return filecode
 
@@ -101,7 +108,9 @@ def page_builder(info, study_info):
         print typevar, info['variables']
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/page_cat.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/page.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(varname=varname,
                                                   variables=variables,
@@ -125,7 +134,9 @@ def cat_tables(info, max_rows=15):
     tablelabel = info['variables_name']+'_01'
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/table.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/table.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(tabular=tabular,
                                                   caption=caption,
@@ -136,6 +147,8 @@ def cat_tables(info, max_rows=15):
 
 def cat_plots(info, study_info):
     # 0. Needed variables
+    if not 'plots' in info.keys():
+        return ''
     fname = '%s.png' % (info['variables_name']+'_01')
     fig = info['plots']
     fig.savefig(join(study_info['path']+'/Plots/', fname))
@@ -144,7 +157,9 @@ def cat_plots(info, study_info):
     imagelabel = info['variables_name']+'_01'
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/image.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/image.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(graphics=graphics,
                                                   caption=caption,
@@ -161,8 +176,8 @@ def cont_tables(info, max_rows=15):
 #        table = info['hist_table']
 
     # 1
-    tabular = "\begin{tabular}{lr}\n\toprule\n\midrule\n\nmean"
-    tabular = tabular + " &  %f \\\n\bottomrule\n\end{tabular}\n"
+    tabular = "\\begin{tabular}{lr}\n\\toprule\n\midrule\n\nmean"
+    tabular = tabular + " &  %f \\\n\\bottomrule\n\end{tabular}\n"
     tabular = tabular % info['mean']
     caption = ''
     tablelabel = info['variables_name']+'_mean'
@@ -176,12 +191,17 @@ def cont_tables(info, max_rows=15):
     # TODO counts
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/table.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/table.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext1 = Template(filecode).safe_substitute(tabular=tabular,
                                                    caption=caption,
                                                    tablelabel=tablelabel)
-    file_ = open('../data/templates/tex/table.txt', "r")
+
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/table.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext2 = Template(filecode).safe_substitute(tabular=tabular2,
                                                    caption=caption2,
@@ -192,6 +212,8 @@ def cont_tables(info, max_rows=15):
 
 def cont_plots(info, study_info):
     # 0. Needed variables
+    if not 'plots' in info.keys():
+        return ''
     fname = '%s.png' % (info['variables_name']+'_01')
     fig = info['plots']
     fig.savefig(join(study_info['path']+'/Plots/', fname))
@@ -200,7 +222,9 @@ def cont_plots(info, study_info):
     imagelabel = info['variables_name']+'_01'
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/image.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/table.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(graphics=graphics,
                                                   caption=caption,
@@ -210,6 +234,8 @@ def cont_plots(info, study_info):
 
 def coord_plots(info, study_info):
     # 0. Needed variables
+    if not 'plots' in info.keys():
+        return ''
     fname = '%s.png' % (info['variables_name']+'_01')
     fig = info['plots']
     fig.savefig(join(study_info['path']+'/Plots/', fname))
@@ -218,7 +244,9 @@ def coord_plots(info, study_info):
     imagelabel = info['variables_name']+'_01'
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/image.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/image.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(graphics=graphics,
                                                   caption=caption,
@@ -232,6 +260,8 @@ def coord_tables(info):
 
 def temp_plots(info, study_info):
     # 0. Needed variables
+    if not 'plots' in info.keys():
+        return ''
     fname = '%s.png' % (info['variables_name']+'_01')
     fig = info['plots']
     fig.savefig(join(study_info['path']+'/Plots/', fname))
@@ -240,7 +270,9 @@ def temp_plots(info, study_info):
     imagelabel = info['variables_name']+'_01'
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/image.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/image.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(graphics=graphics,
                                                   caption=caption,
@@ -259,7 +291,9 @@ def temp_tables(info):
     tablelabel = info['variables_name']+'_01'
 
     ## 1. Applying to the template
-    file_ = open('Mscthesis/data/templates/tex/table.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/table.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(tabular=tabular,
                                                   caption=caption,
@@ -269,6 +303,8 @@ def temp_tables(info):
 
 def tmpdist_plots(info, study_info):
     # 0. Needed variables
+    if not 'plots' in info.keys():
+        return ''
     fname = '%s.png' % (info['variables_name']+'_01')
     fig = info['plots']
     fig.savefig(join(study_info['path']+'/Plots/', fname))
@@ -277,7 +313,9 @@ def tmpdist_plots(info, study_info):
     imagelabel = info['variables_name']+'_01'
 
     ## 1. Applying to the template
-    file_ = open('../data/templates/tex/image.txt', "r")
+    this_dir, this_filename = os.path.split(os.path.abspath(__file__))
+    templ_fl = join(this_dir, '../data/templates/tex/image.txt')
+    file_ = open(templ_fl, "r")
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(graphics=graphics,
                                                   caption=caption,

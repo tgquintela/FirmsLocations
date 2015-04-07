@@ -9,7 +9,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 
 
-def temp_distrib(tmps, agg_time):
+def temp_distrib(tmps, agg_time, logscale=False):
     """
 
     Parameters
@@ -51,6 +51,8 @@ def temp_distrib(tmps, agg_time):
            width=1)
     idxs = ax.get_xticks().astype(int)
     xticks = [ranges[idxs[i]] for i in range(len(idxs)) if idxs[i] < nt]
+    if logscale:
+        ax.set_yscale('log')
     ax.set_xticklabels(xticks)
     plt.setp(ax.xaxis.get_majorticklabels(), rotation=310)
 
@@ -66,7 +68,7 @@ def temp_distrib_agg(tmps, agg_time, total_agg=False):
     pass
 
 
-def distrib_across_temp(df, variables, times=None, ylabel=''):
+def distrib_across_temp(df, variables, times=None, ylabel='', logscale=False):
     """Function to plot """
 
     ## 0. Preparing times
@@ -88,6 +90,8 @@ def distrib_across_temp(df, variables, times=None, ylabel=''):
     ax.set_xticklabels(times)
     plt.xlabel('Years')
     plt.ylabel(ylabel)
+    if logscale:
+        ax.set_yscale('log')
     plt.title("Distribution by years")
 
     return fig

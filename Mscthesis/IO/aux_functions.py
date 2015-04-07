@@ -10,7 +10,7 @@ from os.path import join
 def parse_xlsx_sheet(f, n=0):
     """Parse a sheet of a xlsx file."""
     xl_file = pd.ExcelFile(f)
-    dfs = xl_file.parse(xl_file.sheet_names[n], convert_float=False)
+    dfs = xl_file.parse(xl_file.sheet_names[n], na_values=['n.a.', 'n.d.'])
     return dfs
 
 

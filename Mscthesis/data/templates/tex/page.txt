@@ -1,13 +1,13 @@
 
 \subsection{$varname}
-$vars
+\textit{$variables}
 \vspace{3mm}
 
-$vardescription
+$vardesc
 
 \vspace{5mm}
 		
-$tabledescriptor
+$tables
 		
 \vspace{5mm}
 

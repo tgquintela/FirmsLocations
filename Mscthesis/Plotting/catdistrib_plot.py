@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def barplot_plot(x):
+def barplot_plot(x, logscale=False):
     """Function to explore distribution of a categorical variable.
     """
 
@@ -23,6 +23,8 @@ def barplot_plot(x):
     ax0 = plt.subplot()
     ax0.bar(x, c, align='center')
     ax0.set_xlim([-0.4, len(v)])
+    if logscale:
+        ax0.set_yscale('log')
 
     ## 2. Making up the plot
     # Ticks management
