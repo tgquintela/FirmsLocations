@@ -46,7 +46,7 @@ class Statistics():
         print "Stats computed in %f seconds." % (time.time()-t0)
         return stats
 
-    def __to_latex__(self, filepath=None):
+    def to_latex(self, filepath=None):
         ## 1. Compute transformation
         doc = describe2latex(self.study_info, self.stats)
         ## 2. Write output

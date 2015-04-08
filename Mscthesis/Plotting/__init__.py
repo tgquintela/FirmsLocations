@@ -12,14 +12,25 @@ def general_plot(df, info_var):
     typevar = info_var['type'].lower()
     if typevar in ['discrete', 'categorical']:
         fig = barplot_plot(df[info_var['variables']])
+        if info_var['logscale'] in [True, 'True', 'TRUE']:
+            fig = [fig, barplot_plot(df[info_var['variables']], True)]
     elif typevar == 'continuous':
         fig = cont_distrib_plot(df[info_var['variables']], info_var['n_bins'])
+        if info_var['logscale'] in [True, 'True', 'TRUE']:
+            fig = [fig, cont_distrib_plot(df[info_var['variables']],
+                                          info_var['n_bins'], True)]
     elif typevar == 'coordinates':
         fig = plot_in_map(df[info_var['variables']])
     elif typevar in ['time', 'temporal']:
         fig = temp_distrib(df[info_var['variables']], info_var['agg_time'])
+        if info_var['logscale'] in [True, 'True', 'TRUE']:
+            fig = [fig, temp_distrib(df[info_var['variables']],
+                                     info_var['agg_time'], True)]
     elif typevar == 'tmpdist':
         fig = distrib_across_temp(df, info_var['variables'])
+        if info_var['logscale'] in [True, 'True', 'TRUE']:
+            fig = [fig, distrib_across_temp(df[info_var['variables']],
+                                            info_var['agg_time'], True)]
     else:
         print typevar, info_var['variables']
 
