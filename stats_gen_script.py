@@ -6,7 +6,7 @@ Script for computing the stats.
 ## Setting files
 texoutput = 'Data/results/tex_exploratory.tex'
 fileinstructions = 'Data/about_data/stats_instructions.csv'
-cleanedfilesdata = 'Data/clean_data/cleaned_data'
+cleanedfilesdata = 'Data/clean_data/prunedcleaned_data'
 
 statsfiledata = 'Data/Outputs'
 
