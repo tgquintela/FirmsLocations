@@ -30,7 +30,8 @@ def general_plot(df, info_var):
         fig = distrib_across_temp(df, info_var['variables'])
         if info_var['logscale'] in [True, 'True', 'TRUE']:
             fig = [fig, distrib_across_temp(df[info_var['variables']],
-                                            info_var['agg_time'], True)]
+                                            info_var['agg_time'],
+                                            logscale=True)]
     else:
         print typevar, info_var['variables']
 

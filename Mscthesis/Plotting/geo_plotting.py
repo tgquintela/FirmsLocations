@@ -21,7 +21,7 @@ def clean_coordinates(coordinates):
     return coordinates
 
 
-def plot_in_map(coordinates):
+def plot_in_map(coordinates, resolution='f', color_cont=None, marker_size=1):
     """Plot the coordinates in points in the map.
     """
 
@@ -46,13 +46,14 @@ def plot_in_map(coordinates):
     fig = plt.figure()
     mapa = Basemap(projection='merc', lat_0=lat_0, llcrnrlon=llcrnrlon,
                    llcrnrlat=llcrnrlat, urcrnrlon=urcrnrlon,
-                   urcrnrlat=urcrnrlat, resolution='f')
+                   urcrnrlat=urcrnrlat, resolution=resolution)
     mapa.drawcoastlines()
     mapa.drawcountries()
-    mapa.fillcontinents(color='gray')
+    if color_cont is not None:
+        mapa.fillcontinents(color=color_cont)
     mapa.drawmapboundary()
 
-    mapa.scatter(longs, lats, 10, marker='o', color='k', latlon=True)
+    mapa.scatter(longs, lats, marker_size, marker='o', color='r', latlon=True)
 
     return fig
 
