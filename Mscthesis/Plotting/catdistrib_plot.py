@@ -29,8 +29,9 @@ def barplot_plot(x, logscale=False):
     ## 2. Making up the plot
     # Ticks management
     ax0.set_xticks(x)
-    ax0.set_xticklabels(v)
-    plt.setp(ax0.xaxis.get_majorticklabels(), rotation=310)
+    if len(v) < 100:
+        ax0.set_xticklabels(v)
+        plt.setp(ax0.xaxis.get_majorticklabels(), rotation=310)
     # Axes labels management
     plt.xlabel('Value')
     plt.ylabel('Counts')

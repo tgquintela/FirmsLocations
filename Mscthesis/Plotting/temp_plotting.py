@@ -5,6 +5,7 @@ Temporal plots to understand the temporal structure of the data.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import datetime
 from dateutil.relativedelta import relativedelta
 
@@ -50,11 +51,12 @@ def temp_distrib(tmps, agg_time, logscale=False):
     ax.bar(range(len(ranges)), count_values, align='center', color='black',
            width=1)
     idxs = ax.get_xticks().astype(int)
-    xticks = [ranges[idxs[i]] for i in range(len(idxs)) if idxs[i] < nt]
+    if len(idxs) < 100:
+        xticks = [ranges[idxs[i]] for i in range(len(idxs)) if idxs[i] < nt]
+        ax.set_xticklabels(xticks)
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=310)
     if logscale:
         ax.set_yscale('log')
-    ax.set_xticklabels(xticks)
-    plt.setp(ax.xaxis.get_majorticklabels(), rotation=310)
 
     return fig
 

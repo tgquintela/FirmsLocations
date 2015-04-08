@@ -8,7 +8,6 @@ More than one plot
 from string import Template
 from os.path import join
 import os
-import sys
 import pandas as pd
 import numpy as np
 
@@ -120,6 +119,9 @@ def page_builder(info, study_info):
     return filetext
 
 
+###############################################################################
+############################## LEVEL 3 functions ##############################
+###############################################################################
 def cat_tables(info, max_rows=15):
     # 0. Needed variables
     if info['count_table'].shape[0] > max_rows:
@@ -149,21 +151,19 @@ def cat_plots(info, study_info):
     # 0. Needed variables
     if not 'plots' in info.keys():
         return ''
-    fname = '%s.png' % (info['variables_name']+'_01')
-    fig = info['plots']
-    fig.savefig(join(study_info['path']+'/Plots/', fname))
-    graphics = 'Plots/'+fname
-    caption = 'Plot of the distribution of %s' % info['variables_name']
-    imagelabel = info['variables_name']+'_01'
+    # Save plots to computer
+    graphics, caption, imagelabel = plot_saving(info, study_info)
 
     ## 1. Applying to the template
     this_dir, this_filename = os.path.split(os.path.abspath(__file__))
-    templ_fl = join(this_dir, '../data/templates/tex/image.txt')
+    filename = get_filename_template(len(graphics))
+    templ_fl = join(this_dir, filename)
     file_ = open(templ_fl, "r")
     filecode = file_.read()
-    filetext = Template(filecode).safe_substitute(graphics=graphics,
-                                                  caption=caption,
+    filetext = Template(filecode).safe_substitute(caption=caption,
                                                   imagelabel=imagelabel)
+    filetext = substitute_plots(graphics, filetext)
+
     return filetext
 
 
@@ -214,21 +214,19 @@ def cont_plots(info, study_info):
     # 0. Needed variables
     if not 'plots' in info.keys():
         return ''
-    fname = '%s.png' % (info['variables_name']+'_01')
-    fig = info['plots']
-    fig.savefig(join(study_info['path']+'/Plots/', fname))
-    graphics = 'Plots/'+fname
-    caption = 'Plot of the distribution of %s' % info['variables_name']
-    imagelabel = info['variables_name']+'_01'
+    # Save plots to computer
+    graphics, caption, imagelabel = plot_saving(info, study_info)
 
     ## 1. Applying to the template
     this_dir, this_filename = os.path.split(os.path.abspath(__file__))
-    templ_fl = join(this_dir, '../data/templates/tex/table.txt')
+    filename = get_filename_template(len(graphics))
+    templ_fl = join(this_dir, filename)
     file_ = open(templ_fl, "r")
     filecode = file_.read()
-    filetext = Template(filecode).safe_substitute(graphics=graphics,
-                                                  caption=caption,
+    filetext = Template(filecode).safe_substitute(caption=caption,
                                                   imagelabel=imagelabel)
+    filetext = substitute_plots(graphics, filetext)
+
     return filetext
 
 
@@ -236,21 +234,19 @@ def coord_plots(info, study_info):
     # 0. Needed variables
     if not 'plots' in info.keys():
         return ''
-    fname = '%s.png' % (info['variables_name']+'_01')
-    fig = info['plots']
-    fig.savefig(join(study_info['path']+'/Plots/', fname))
-    graphics = 'Plots/'+fname
-    caption = 'Plot spatial distribution of companies'
-    imagelabel = info['variables_name']+'_01'
+    # Save plots to computer
+    graphics, caption, imagelabel = plot_saving(info, study_info)
 
     ## 1. Applying to the template
     this_dir, this_filename = os.path.split(os.path.abspath(__file__))
-    templ_fl = join(this_dir, '../data/templates/tex/image.txt')
+    filename = get_filename_template(len(graphics))
+    templ_fl = join(this_dir, filename)
     file_ = open(templ_fl, "r")
     filecode = file_.read()
-    filetext = Template(filecode).safe_substitute(graphics=graphics,
-                                                  caption=caption,
+    filetext = Template(filecode).safe_substitute(caption=caption,
                                                   imagelabel=imagelabel)
+    filetext = substitute_plots(graphics, filetext)
+
     return filetext
 
 
@@ -262,21 +258,19 @@ def temp_plots(info, study_info):
     # 0. Needed variables
     if not 'plots' in info.keys():
         return ''
-    fname = '%s.png' % (info['variables_name']+'_01')
-    fig = info['plots']
-    fig.savefig(join(study_info['path']+'/Plots/', fname))
-    graphics = 'Plots/'+fname
-    caption = 'Plot of the distribution of %s' % info['variables_name']
-    imagelabel = info['variables_name']+'_01'
+    # Save plots to computer
+    graphics, caption, imagelabel = plot_saving(info, study_info)
 
     ## 1. Applying to the template
     this_dir, this_filename = os.path.split(os.path.abspath(__file__))
-    templ_fl = join(this_dir, '../data/templates/tex/image.txt')
+    filename = get_filename_template(len(graphics))
+    templ_fl = join(this_dir, filename)
     file_ = open(templ_fl, "r")
     filecode = file_.read()
-    filetext = Template(filecode).safe_substitute(graphics=graphics,
-                                                  caption=caption,
+    filetext = Template(filecode).safe_substitute(caption=caption,
                                                   imagelabel=imagelabel)
+    filetext = substitute_plots(graphics, filetext)
+
     return filetext
 
 
@@ -305,23 +299,67 @@ def tmpdist_plots(info, study_info):
     # 0. Needed variables
     if not 'plots' in info.keys():
         return ''
-    fname = '%s.png' % (info['variables_name']+'_01')
-    fig = info['plots']
-    fig.savefig(join(study_info['path']+'/Plots/', fname))
-    graphics = 'Plots/'+fname
-    caption = 'Plot of the distribution of %s' % info['variables_name']
-    imagelabel = info['variables_name']+'_01'
+    # Save plots to computer
+    graphics, caption, imagelabel = plot_saving(info, study_info)
 
     ## 1. Applying to the template
     this_dir, this_filename = os.path.split(os.path.abspath(__file__))
-    templ_fl = join(this_dir, '../data/templates/tex/image.txt')
+    filename = get_filename_template(len(graphics))
+    templ_fl = join(this_dir, filename)
     file_ = open(templ_fl, "r")
     filecode = file_.read()
-    filetext = Template(filecode).safe_substitute(graphics=graphics,
-                                                  caption=caption,
+    filetext = Template(filecode).safe_substitute(caption=caption,
                                                   imagelabel=imagelabel)
+    filetext = substitute_plots(graphics, filetext)
+
     return filetext
 
 
 def tmpdist_tables(info):
     return ''
+
+
+###############################################################################
+############################## Auxiliar functions #############################
+###############################################################################
+def get_filename_template(n):
+    """Return the template file for plotting."""
+    if n == 1:
+        filename = '../data/templates/tex/image.txt'
+    elif n == 2:
+        filename = '../data/templates/tex/image2.txt'
+    elif n == 4:
+        filename = '../data/templates/tex/image4.txt'
+    return filename
+
+
+def substitute_plots(graphics, filetext):
+    """Substitute the plot directions into the latex text."""
+    filetext = Template(filetext).safe_substitute(graphics1=graphics[0])
+    if len(graphics) > 1:
+        filetext = Template(filetext).safe_substitute(graphics2=graphics[1])
+    elif len(graphics) > 2:
+        filetext = Template(filetext).safe_substitute(graphics3=graphics[2])
+        filetext = Template(filetext).safe_substitute(graphics4=graphics[3])
+    return filetext
+
+
+def plot_saving(info, study_info):
+    """This function save the plots stored in the stats info and return its
+    path directions and additional information stored in stats info.
+    """
+    fig = info['plots']
+    if type(fig) != list:
+        fname = '%s.png' % (info['variables_name']+'_01')
+        fig.savefig(join(study_info['path']+'/Plots/', fname))
+        graphics = ['Plots/'+fname]
+    elif type(fig) == list:
+        graphics = []
+        for i in range(len(fig)):
+            fname = '%s.png' % (info['variables_name']+'_0'+str(i+1))
+            fig[i].savefig(join(study_info['path']+'/Plots/', fname))
+            graphics.append('Plots/'+fname)
+    caption = 'Plot of the distribution of %s' % info['variables_name']
+    imagelabel = info['variables_name']+'_01'
+
+    return graphics, caption, imagelabel

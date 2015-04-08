@@ -1,0 +1,15 @@
+
+
+\begin{figure}[H]
+\centering
+
+
+\includegraphics[width=.45\textwidth]{$graphics1}
+\includegraphics[width=.45\textwidth]{$graphics2}
+\includegraphics[width=.45\textwidth]{$graphics3}
+\includegraphics[width=.45\textwidth]{$graphics4}
+
+
+\caption{$caption}
+\label{fig:$imagelabel}
+\end{figure}
