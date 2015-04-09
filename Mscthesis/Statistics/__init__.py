@@ -7,6 +7,7 @@ selected variables or bunch of variables with the selected method.
 import pandas as pd
 import numpy as np
 from stats_functions import compute_stats
+from utils import clean_stats
 from Mscthesis.IO.parse_data import parse_instructions_file
 from Mscthesis.IO.output_to_latex import describe2latex
 import time
@@ -19,6 +20,7 @@ class Statistics():
     ----
     Check if the variables in the info are in the dataframe and act in
     consequence.
+    create plots function to create from stats the plots.
 
     """
 
@@ -60,3 +62,9 @@ class Statistics():
             with open(filepath, 'w') as myfile:
                 myfile.write(doc)
             myfile.close()
+
+    def clean_stats(self, stats=None):
+        if stats is None:
+            stats = self.stats
+        stats = clean_stats(stats)
+        return stats

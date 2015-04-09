@@ -72,8 +72,8 @@ def log_cont_count(df, variable, n_bins):
     mini = np.nanmin(np.array(df[variable]))
     mini = .001 if mini <= 0 else mini
     maxi = np.nanmax(np.array(df[variable]))
-    bins = np.linspace(np.log(mini), np.log(maxi), n_bins+1)
-    bins = np.exp(bins)
+    bins = np.linspace(np.log10(mini), np.log10(maxi), n_bins+1)
+    bins = np.power(10, bins)
     bins[0] = np.nanmin(np.array(df[variable]))
     labels = [str(i) for i in range(int(n_bins))]
     categories = pd.cut(df[variable], bins, labels=labels)

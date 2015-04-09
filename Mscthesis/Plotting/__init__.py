@@ -15,10 +15,12 @@ def general_plot(df, info_var):
         if info_var['logscale'] in [True, 'True', 'TRUE']:
             fig = [fig, barplot_plot(df[info_var['variables']], True)]
     elif typevar == 'continuous':
-        fig = cont_distrib_plot(df[info_var['variables']], info_var['n_bins'])
+#        fig = cont_distrib_plot(info_var['count_hist'], info_var['n_bins'])
+        fig = cont_distrib_plot(df[info_var['variables']],
+                                info_var['hist_table'][1])
         if info_var['logscale'] in [True, 'True', 'TRUE']:
             fig = [fig, cont_distrib_plot(df[info_var['variables']],
-                                          info_var['n_bins'], True)]
+                                          info_var['log_hist_table'][1], True)]
     elif typevar == 'coordinates':
         fig = plot_in_map(df[info_var['variables']])
     elif typevar in ['time', 'temporal']:
