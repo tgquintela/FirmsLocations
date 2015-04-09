@@ -46,7 +46,10 @@ class Statistics():
             print s % (info_var['variables'], time.time()-t1)
         ## 2. Save and return
         self.stats = stats
-        aux = pd.DataFrame(np.sum(dataframe.notnull()), columns=['non-null'])
+        # TODO: Order by column order!!!
+        countsnull = np.sum(dataframe.notnull())
+        aux = pd.DataFrame([countsnull, dataframe.shape[0]-countsnull],
+                           columns=['non-null', 'null'])
         self.study_info['global_stats'] = aux
         print "Stats computed in %f seconds." % (time.time()-t0)
         return stats
