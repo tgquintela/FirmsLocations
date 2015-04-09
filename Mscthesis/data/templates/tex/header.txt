@@ -16,3 +16,4 @@
 \usepackage{multicol}  %varias columnas 
 
 \usepackage{booktabs}
+\usepackage{hyperref}

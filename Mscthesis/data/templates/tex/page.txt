@@ -1,6 +1,6 @@
 
 \subsection{$varname}
-\textit{$variables}
+\boxed{\textit{$variables}}
 \vspace{3mm}
 
 $vardesc

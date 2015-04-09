@@ -23,7 +23,8 @@ def describe2latex(study_info, stats):
     """
     ## 0. Needed variables
     this_dir, this_filename = os.path.split(os.path.abspath(__file__))
-    os.mkdir(join(study_info['path'], 'Plots'))
+    if not os.path.exists(join(study_info['path'], 'Plots')):
+        os.mkdir(join(study_info['path'], 'Plots'))
     header = built_header()
     title = built_title(study_info)
     content = built_content(study_info, stats)
@@ -34,22 +35,26 @@ def describe2latex(study_info, stats):
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(header=header, title=title,
                                                   content=content)
-
-    file_ = open(join(study_info['path'], 'report.tex'), "w")
-    file_.write(filetext)
-
+    filetext = filetext.encode('utf-8')
     return filetext
+    #file_ = open(join(study_info['path'], 'report.tex'), "w")
+    #file_.write(filetext)
+
+    #return filetext
 
 
 ###############################################################################
 ############################## LEVEL 1 functions ##############################
 ###############################################################################
 def built_content(study_info, stats):
+    intro = build_intro(study_info)
     pages = []
     for st in stats:
         pages.append(page_builder(st, study_info))
 
     content = '\\newpage\n'.join(pages)
+    content = '\\newpage\n'.join([intro, content])
+    content = content.decode('utf-8')
     return content
 
 
@@ -67,6 +72,7 @@ def built_title(study_info):
     filecode = file_.read()
     filetext = Template(filecode).safe_substitute(title=title, author=author,
                                                   date='')
+    filetext = filetext.decode('utf-8')
     return filetext
 
 
@@ -75,17 +81,25 @@ def built_header():
     templ_fl = join(this_dir, '../data/templates/tex/header.txt')
     file_ = open(templ_fl, "r")
     filecode = file_.read()
+    filecode = filecode.decode('utf-8')
     return filecode
 
 
 ###############################################################################
 ############################## LEVEL 2 functions ##############################
 ###############################################################################
+def build_intro(study_info):
+    global_stats = study_info['global_stats']
+    text = '\section{Variables}\n'+global_stats.to_latex()
+    text = text.decode('utf-8')
+    return text
+
+
 def page_builder(info, study_info):
     ## 0. Needed variables
-    varname = info['variables_name']
+    varname = info['variables_name'].decode('utf-8').encode('utf-8')
     variables = info['variables']
-    vardesc = info['Description']
+    vardesc = info['Description'].decode('utf-8').encode('utf-8')
 
     typevar = info['type'].lower()
     if typevar in ['discrete', 'categorical']:
@@ -115,7 +129,10 @@ def page_builder(info, study_info):
                                                   variables=variables,
                                                   vardesc=vardesc,
                                                   tables=tables,
-                                                  plots=plots)
+                                                  plots=plots,
+                                                  comments='',
+                                                  artificialcomments='')
+    filetext = filetext.decode('utf-8')
     return filetext
 
 
@@ -167,7 +184,7 @@ def cat_plots(info, study_info):
     return filetext
 
 
-def cont_tables(info, max_rows=15):
+def cont_tables(info, max_rows=15, nmax_cols=8):
     ## TODO: Number of nulls
     # 0. Needed variables
 #    if info['hist_table'][0].shape[0] > max_rows:
@@ -177,14 +194,21 @@ def cont_tables(info, max_rows=15):
 
     # 1
     tabular = "\\begin{tabular}{lr}\n\\toprule\n\midrule\n\nmean"
-    tabular = tabular + " &  %f \\\n\\bottomrule\n\end{tabular}\n"
+    tabular = tabular + " &  %f \\\\\n\\bottomrule\n\end{tabular}\n"
     tabular = tabular % info['mean']
     caption = ''
     tablelabel = info['variables_name']+'_mean'
     # 2
     aux = np.vstack([info['ranges'], info['quantiles']])
-    table = pd.DataFrame(aux.T, columns=['ranges', 'quantiles']).transpose()
-    tabular2 = table.to_latex()
+    table = pd.DataFrame(aux.T, columns=['ranges', 'quantiles'])
+    # Formatting table to fit into a page
+    ni, na = table.index[0], table.shape[0]
+    nmax_cols = nmax_cols if na >= nmax_cols else na
+    idxs = np.linspace(ni, na-1, nmax_cols).round().astype(int)
+    table = table[['ranges', 'quantiles']]
+    table = table.transpose()
+    table = table[idxs]
+    tabular2 = table.to_latex(float_format=lambda x: '%.2f' % x)
     caption2 = 'Comparative between quantiles and proportional segments of %s'
     caption2 = caption2 % info['variables_name']
     tablelabel2 = info['variables_name']+'_01'
@@ -348,18 +372,22 @@ def plot_saving(info, study_info):
     """This function save the plots stored in the stats info and return its
     path directions and additional information stored in stats info.
     """
+    varname = info['variables_name'].replace(".", "_")
+    varname = varname.replace("-", "_")
     fig = info['plots']
     if type(fig) != list:
-        fname = '%s.png' % (info['variables_name']+'_01')
+        fname = '%s.png' % (varname+'_01')
+        fname = fname.replace(" ", "")
         fig.savefig(join(study_info['path']+'/Plots/', fname))
         graphics = ['Plots/'+fname]
     elif type(fig) == list:
         graphics = []
         for i in range(len(fig)):
-            fname = '%s.png' % (info['variables_name']+'_0'+str(i+1))
+            fname = '%s.png' % (varname+'_0'+str(i+1))
+            fname = fname.replace(" ", "")
             fig[i].savefig(join(study_info['path']+'/Plots/', fname))
             graphics.append('Plots/'+fname)
     caption = 'Plot of the distribution of %s' % info['variables_name']
-    imagelabel = info['variables_name']+'_01'
+    imagelabel = varname+'_01'
 
     return graphics, caption, imagelabel

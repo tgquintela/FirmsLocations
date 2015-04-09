@@ -33,6 +33,7 @@ def cont_distrib_plot(x, n_bins, logscale=False):
     ax0.set_ylabel('Counts')
     if logscale:
         ax0.set_yscale('log')
+        ax0.set_xscale('log')
     # Mark of median
     l1 = plt.axvline(median, linewidth=2, color='r', label='Median',
                      linestyle='--')
@@ -52,6 +53,7 @@ def cont_distrib_plot(x, n_bins, logscale=False):
     ax1.set_xlim([mini-delta, maxi+delta])
     if logscale:
         ax1.set_yscale('log')
+        ax1.set_xscale('log')
     ax1.grid(True)
     ax1.set_yticklabels('A')
     plt.setp(ax0.get_xticklabels(), visible=False)

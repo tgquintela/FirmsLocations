@@ -14,14 +14,4 @@ $title
 $content
 
 
-
 \end{document}
-
-
-
-
-
-
-
-
-

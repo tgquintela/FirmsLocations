@@ -87,13 +87,13 @@ def distrib_across_temp(df, variables, times=None, ylabel='', logscale=False):
     ax = plt.subplot()
     df[variables].boxplot()
     # Making up the plot
+    plt.xlabel('Years')
+    if logscale:
+        ax.set_yscale('log')
     ax.set_ylim([mini-delta, maxi+delta])
     ax.grid(True)
     ax.set_xticklabels(times)
-    plt.xlabel('Years')
     plt.ylabel(ylabel)
-    if logscale:
-        ax.set_yscale('log')
     plt.title("Distribution by years")
 
     return fig

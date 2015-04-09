@@ -5,6 +5,7 @@ selected variables or bunch of variables with the selected method.
 """
 
 import pandas as pd
+import numpy as np
 from stats_functions import compute_stats
 from Mscthesis.IO.parse_data import parse_instructions_file
 from Mscthesis.IO.output_to_latex import describe2latex
@@ -21,7 +22,7 @@ class Statistics():
 
     """
 
-    def __init__(self, fileinstructions, study_info=None):
+    def __init__(self, fileinstructions, study_info={}):
         '''Initialization of the stats computation.'''
         describ_info = parse_instructions_file(fileinstructions)
         self.info = describ_info
@@ -39,10 +40,12 @@ class Statistics():
             t1 = time.time()
             info_var = dict(self.info.iloc[i])
             s = "The stats of variable %s has been computed in %f seconds."
-            print s % (info_var['variables'], time.time()-t1)
             stats.append(compute_stats(dataframe, info_var))
+            print s % (info_var['variables'], time.time()-t1)
         ## 2. Save and return
         self.stats = stats
+        aux = pd.DataFrame(np.sum(dataframe.notnull()), columns=['non-null'])
+        self.study_info['global_stats'] = aux
         print "Stats computed in %f seconds." % (time.time()-t0)
         return stats
 
@@ -54,6 +57,6 @@ class Statistics():
             return doc
         else:
             #Write doc
-            with open(filepath, 'r+') as myfile:
+            with open(filepath, 'w') as myfile:
                 myfile.write(doc)
             myfile.close()

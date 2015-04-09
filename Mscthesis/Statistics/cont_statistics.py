@@ -32,6 +32,9 @@ def compute_cont_describe(df, info_var):
                                        summary['n_bins'])
     summary['hist_table'] = cont_count(df, variable,
                                        summary['n_bins'])
+    if info_var['logscale'] in [True, 'True', 'TRUE']:
+        summary['log_hist_table'] = log_cont_count(df, variable,
+                                                   summary['n_bins'])
 
     if info_var['ifplot'] in [True, 'True', 'TRUE']:
         summary['plots'] = general_plot(df, info_var)
@@ -58,6 +61,20 @@ def cont_count(df, variable, n_bins):
     mini = np.nanmin(np.array(df[variable]))
     maxi = np.nanmax(np.array(df[variable]))
     bins = np.linspace(mini, maxi, n_bins+1)
+    labels = [str(i) for i in range(int(n_bins))]
+    categories = pd.cut(df[variable], bins, labels=labels)
+    categories = pd.Series(np.array(categories)).replace(np.nan, 'NaN')
+    counts = categories.value_counts()
+    return counts, bins
+
+
+def log_cont_count(df, variable, n_bins):
+    mini = np.nanmin(np.array(df[variable]))
+    mini = .001 if mini <= 0 else mini
+    maxi = np.nanmax(np.array(df[variable]))
+    bins = np.linspace(np.log(mini), np.log(maxi), n_bins+1)
+    bins = np.exp(bins)
+    bins[0] = np.nanmin(np.array(df[variable]))
     labels = [str(i) for i in range(int(n_bins))]
     categories = pd.cut(df[variable], bins, labels=labels)
     categories = pd.Series(np.array(categories)).replace(np.nan, 'NaN')
