@@ -27,8 +27,12 @@ servicios_parser = Servicios_Parser(cleaned=False)
 servicios = servicios_parser.parse(cleanedfilesdata)
 print 'Data parsed in %f seconds. Starting computing stats.' % (time.time()-t0)
 
+from Mscthesis.IO.aux_functions import parse_xlsx_sheet
+servicios = parse_xlsx_sheet(join(cleanedfilesdata, 'Ceuta_Melilla.xlsx'))
+
 ## Stats computation
-stats_container = Statistics(fileinstructions, study_info=None)
+study_info = {'author': 'Antonio G.', 'date': '', 'title': 'Study', 'path': join(os.getcwd(), statsfiledata)}
+stats_container = Statistics(fileinstructions, study_info)
 stats = stats_container.compute_stats(servicios)
 
 ## Save
@@ -40,8 +44,10 @@ database = shelve.open(statsobj)
 stats_container = database['stats_container']
 
 #stats_container.to_latex(texoutput)
-stats_container.study_info = {'author': 'Antonio G.', 'date': '', 'title': 'Study', 'path': join(os.getcwd(), statsfiledata)}
+stats_container.to_latex(join(statsfiledata, 'report.tex'))
 doc = describe2latex(stats_container.study_info, stats_container.stats)
+
+
 #Write doc
 with open(texoutput, 'r+') as myfile:
     myfile.write(doc)
