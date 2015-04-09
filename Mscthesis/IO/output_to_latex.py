@@ -184,7 +184,7 @@ def cat_plots(info, study_info):
     return filetext
 
 
-def cont_tables(info, max_rows=15, nmax_cols=8):
+def cont_tables(info, max_rows=15, nmax_cols=7):
     ## TODO: Number of nulls
     # 0. Needed variables
 #    if info['hist_table'][0].shape[0] > max_rows:

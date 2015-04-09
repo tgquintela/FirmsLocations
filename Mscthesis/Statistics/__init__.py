@@ -7,7 +7,7 @@ selected variables or bunch of variables with the selected method.
 import pandas as pd
 import numpy as np
 from stats_functions import compute_stats
-from utils import clean_stats
+from utils import clean_dict_stats
 from Mscthesis.IO.parse_data import parse_instructions_file
 from Mscthesis.IO.output_to_latex import describe2latex
 import time
@@ -66,5 +66,5 @@ class Statistics():
     def clean_stats(self, stats=None):
         if stats is None:
             stats = self.stats
-        stats = clean_stats(stats)
+        stats = clean_dict_stats(stats)
         return stats
