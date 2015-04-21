@@ -17,10 +17,11 @@ def parse_xlsx_sheet(f, n=0):
 def concat_from_dict(d, keyvar):
     """Function to join all the dictionaries of the servicios data."""
     for e in d.keys():
-        m = d[e].shape[0]
         if keyvar is not None:
-            Reg = pd.DataFrame([e]*m, columns=[keyvar])
-            d[e] = pd.concat([d[e], Reg], axis=1)
+            aux = d[e]
+            del d[e]
+            Reg = pd.DataFrame(e, index=aux.index, columns=[keyvar])
+            d[e] = pd.concat([aux, Reg], axis=1)
     d = pd.concat(list(d.values()))
     return d
 

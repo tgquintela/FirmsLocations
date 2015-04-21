@@ -29,7 +29,10 @@ for e in types_cc:
 data = pd.concat([servicios[['cnae', 'ES-X', 'ES-Y']], region], axis=1)
 loc_vars = ['ES-X', 'ES-Y']
 loc_zone_var = ['Lat_sector']
+del servicios
 
+
+data = data.dropna()
 data = transf4compdist_spain_global(data, loc_vars, loc_zone_var)
 #data[['ES-X', 'ES-Y']] = 
 
@@ -39,7 +42,7 @@ data['cnae'] = transform_cnae_col(data['cnae'], 2)
 #### Compute matrix
 from Mscthesis.Models.pjensen import built_network
 
-radius = 10.
+radius = 5.
 type_var='cnae'
 
 net, sectors, N_x = built_network(data, loc_vars, type_var, radius)
