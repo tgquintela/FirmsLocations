@@ -76,7 +76,7 @@ def cnae2str(df):
     """Transforming cnae code to string."""
     def cnae2str_ind(x):
         try:
-            x = str(x)
+            x = str(int(x))
         except:
             pass
         return x
