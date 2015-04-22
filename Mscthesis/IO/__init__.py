@@ -15,9 +15,10 @@ from os.path import join
 import os
 import time
 
-from Mscthesis.Preprocess.preprocess import filter_servicios, cnae2str, cp2str
+from Mscthesis.Preprocess.preprocess import filter_servicios, cnae2str, \
+    cp2str, filter_servicios_dict
 from aux_functions import concat_from_dict, write_dataframe_to_excel,\
-    write_dataframe_to_csv
+    write_dataframe_to_csv, get_index_from_dict
 from parse_data import parse_servicios, parse_servicios_columns
 from aux_functions import parse_xlsx_sheet
 
@@ -36,41 +37,6 @@ class Servicios_Parser():
         self.indices = indices
         self.files = {}
 
-    def parse_and_clean(self, infilepath, outfilepath=None):
-        '''Parsing and cleaning process.'''
-        ## 0. Managing inputs
-        self.cleaned = False
-        ## 1. Parsing
-        servicios = self.parse(infilepath)
-        ## 2. Preprocessing
-        servicios = self.filter_rows(servicios)
-        ## 3. Output the file
-        if outfilepath is not None:
-            self.write_servicios(servicios, outfilepath)
-        del servicios
-
-    def parse_and_clean_by_file(self, infilepath, outfilepath):
-        ## 0. Managing inputs
-        self.cleaned = False
-        t0 = time.time()
-        ## 1. Parsing
-        files = os.listdir(infilepath)
-        indices = []
-        for f in files:
-            t1 = time.time()
-            servicios = parse_xlsx_sheet(join(infilepath, f))
-            servicios = self.filter_rows(servicios)
-            indices.append(self.indices)
-            print 'End filtering '+f
-            write_dataframe_to_excel(servicios, join(outfilepath, f))
-            print 'End writting '+f
-            s = "The duration of the total process for %s was %f seconds."
-            print s % (f, t1-time.time())
-            del servicios
-        self.indices = (files, indices)
-        self.cleaned = True
-        print "The process lasted %f seconds." % (time.time()-t0)
-
     def parse(self, filepath=None, cleaned=None):
         '''Parsing function which considers if we have parsed or not before.'''
         ### 0. Managing inputs
@@ -80,16 +46,29 @@ class Servicios_Parser():
         else:
             self.files['raw'] = filepath
         ## 1. Parsing task
+        t0 = time.time()
         if not self.cleaned:
             ### parse files
             servicios = parse_servicios(filepath)
+            ### filter in parsing (TODO)
+            date = datetime.datetime.strptime('2006-01-01', '%Y-%m-%d')
+            servicios = filter_servicios_dict(servicios, date, ['ES-X', 'ES-Y'])
+            ### get indices
+            self.indices = get_index_from_dict(servicios)
             ### Concat servicios
             servicios = concat_from_dict(servicios, 'Region')
         else:
             ### parse cleaned file
             servicios = pd.io.parsers.read_csv(filepath)
+            ### get indices
+            self.indices = np.array(servicios.index)
+        print 'Data parsed in %f seconds.' % (time.time()-t0)
         ## 2. Tranforming
+        t0 = time.time()
         servicios = self.categorize_cols(servicios)
+        ## 3. Reindex
+        servicios.index = range(servicios.shape[0])
+        print 'Data prepared and filtered in %f seconds.' % (time.time()-t0)
         return servicios
 
     def write_servicios(self, servicios, filepath):
@@ -136,6 +115,6 @@ class Servicios_Parser():
         ### Concat servicios
         servicios = concat_from_dict(servicios, None)
 
-        ## 2. Tranforming
+        ## 2. Transforming
         servicios = self.categorize_cols(servicios)
         return servicios

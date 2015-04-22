@@ -46,7 +46,7 @@ statsobj = join(statsfiledata, statsobj)
 database = shelve.open(statsobj)
 database['info'] = stats_container.info
 database['study_info'] = stats_container.study_info
-database['stats'] = stats_container.stats
+database['stats'] = stats_container.clean_stats()
 
 #database['stats_container'] = stats_container
 #stats_container = database['stats_container']

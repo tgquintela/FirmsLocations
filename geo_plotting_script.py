@@ -1,5 +1,8 @@
 
-
+import time
+from os.path import join
+import numpy as np
+import pandas as pd
 
 #### PARSE DATA
 from Mscthesis.IO.aux_functions import parse_xlsx_sheet
@@ -8,7 +11,7 @@ import numpy as np
 from Mscthesis.Preprocess.preprocess import cnae2str
 
 #municipios = parse_xlsx_sheet('Data/municipios-espana_2014_complete.xls')
-servicios = parse_xlsx_sheet('Data/clean_data/prunedcleaned_data/Extremadura.xlsx')
+servicios2 = parse_xlsx_sheet('Data/clean_data/prunedcleaned_data/Extremadura.xlsx')
 region = pd.DataFrame('Extremadura', index=servicios.index, columns=['Region'])
 servicios = pd.concat([servicios, region], axis=1)
 servicios = cnae2str(servicios)
@@ -32,7 +35,9 @@ loc_zone_var = ['Lat_sector']
 del servicios
 
 
-data = data.dropna()
+data = data.dropna(how='all')
+data = data[data['ES-X'] != 0]
+data.index = range(data.shape[0])
 data = transf4compdist_spain_global(data, loc_vars, loc_zone_var)
 #data[['ES-X', 'ES-Y']] = 
 
@@ -45,7 +50,21 @@ from Mscthesis.Models.pjensen import built_network
 radius = 5.
 type_var='cnae'
 
+t0 = time.time()
+
 net, sectors, N_x = built_network(data, loc_vars, type_var, radius)
+
+#### SAVING
+import shelve
+netfiledata = 'Data/Outputs'
+netobj = "net_object.dat"
+netobj = join(netfiledata, netobj)
+database = shelve.open(netobj)
+database['net'] = net
+database['sectors'] = sectors
+database['N_x'] = N_x
+
+print 'Net computed in %f seconds.' % (time.time()-t0)
 
 #### Plot
 from Mscthesis.Plotting.net_plotting import plot_net_distribution, plot_heat_net

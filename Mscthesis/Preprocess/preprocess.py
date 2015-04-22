@@ -10,17 +10,28 @@ cada tipus, anys d'activitat, etc.
 import numpy as np
 
 
-def filter_servicios(servicios, date):
+def filter_servicios(servicios, date, coord_vars=[]):
     """This function performs the filtering of the companies which do not have
     acitivity the years of the study.
     """
     #servicios = filter_by_activity(servicios)
     servicios = filter_by_date(servicios, date)
+    servicios = filter_by_nullcoordinates(servicios, coord_vars)
     indices = servicios.index
     # Transform special columns
     servicios = cp2str(servicios)
     servicios = cnae2str(servicios)
     return servicios, indices
+
+
+def filter_servicios_dict(d, date, coord_vars):
+    """Filter the 
+    """
+    for e in d.keys():
+        aux = d[e]
+        del d[e]
+        d[e], _ = filter_servicios(aux, date, coord_vars)
+    return d
 
 
 def filter_by_activity(servicios):
@@ -47,6 +58,15 @@ def filter_by_date(servicios, date):
     return servicios
 
 
+def filter_by_nullcoordinates(servicios, coord_vars):
+    """Filter the rows with null values in coordinates.
+    """
+    idxs = np.logical_and(servicios[coord_vars[0]] != 0,
+                          servicios[coord_vars[1]] != 0)
+    servicios = servicios[idxs]
+    return servicios
+
+
 ###############################################################################
 ############################# AUXILIARY FUNCTIONS #############################
 ###############################################################################
@@ -68,7 +88,7 @@ def cp2str(df):
             pass
         return x
     if 'cp' in df.columns:
-        df['cp'] = df['cp'].apply(cp2str_ind)
+        df.loc[:, 'cp'] = df['cp'].apply(cp2str_ind)
     return df
 
 
@@ -81,7 +101,7 @@ def cnae2str(df):
             pass
         return x
     if 'cnae' in df.columns:
-        df['cnae'] = df['cnae'].apply(cnae2str_ind)
+        df.loc[:, 'cnae'] = df['cnae'].apply(cnae2str_ind)
     return df
 
 

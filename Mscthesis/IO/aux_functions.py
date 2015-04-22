@@ -4,6 +4,7 @@ Auxiliary functions for parsing and managing input data.
 """
 
 import pandas as pd
+import numpy as np
 from os.path import join
 
 
@@ -38,3 +39,12 @@ def write_dataframe_to_excel(d, name, path=''):
     name = name if len(name.split()) == 1 else name
     filepath = join(path, name)
     d.to_excel(filepath)
+
+
+def get_index_from_dict(d):
+    """Function to get the indices from the dataframes."""
+    d_ind = {}
+    for e in d.keys():
+        idxs = np.array(d[e].index)
+        d_ind[e] = idxs
+    return d_ind

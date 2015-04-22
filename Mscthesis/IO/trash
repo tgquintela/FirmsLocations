@@ -1,0 +1,38 @@
+
+
+### __init__
+
+    def parse_and_clean(self, infilepath, outfilepath=None):
+        '''Parsing and cleaning process.'''
+        ## 0. Managing inputs
+        self.cleaned = False
+        ## 1. Parsing
+        servicios = self.parse(infilepath)
+        ## 2. Preprocessing
+        servicios = self.filter_rows(servicios)
+        ## 3. Output the file
+        if outfilepath is not None:
+            self.write_servicios(servicios, outfilepath)
+        del servicios
+
+    def parse_and_clean_by_file(self, infilepath, outfilepath):
+        ## 0. Managing inputs
+        self.cleaned = False
+        t0 = time.time()
+        ## 1. Parsing
+        files = os.listdir(infilepath)
+        indices = []
+        for f in files:
+            t1 = time.time()
+            servicios = parse_xlsx_sheet(join(infilepath, f))
+            servicios = self.filter_rows(servicios)
+            indices.append(self.indices)
+            print 'End filtering '+f
+            write_dataframe_to_excel(servicios, join(outfilepath, f))
+            print 'End writting '+f
+            s = "The duration of the total process for %s was %f seconds."
+            print s % (f, t1-time.time())
+            del servicios
+        self.indices = (files, indices)
+        self.cleaned = True
+        print "The process lasted %f seconds." % (time.time()-t0)
