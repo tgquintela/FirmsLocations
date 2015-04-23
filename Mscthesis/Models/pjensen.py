@@ -31,7 +31,7 @@ def built_network(df, loc_vars, type_var, radius):
                                        type_var, radius)
         ##########
         retrieve_t += time.time()-t0
-        t0 = time.time()
+        t1 = time.time()
         ##########
         aux = compute_unorm_corrs(counts_i, i)
         ## Normalization
@@ -46,7 +46,8 @@ def built_network(df, loc_vars, type_var, radius):
         net[i, :] = aux
 
         ##########
-        compute_t += time.time()-t0
+        print "Finished %s in %f seconds." %(type_vals[i], time.time()-t0)
+        compute_t += time.time()-t1
         ##########
 
     return net, type_vals, N_x, retrieve_t, compute_t

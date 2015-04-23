@@ -86,9 +86,10 @@ database['sectors'] = sectors
 database['N_x'] = N_x
 database['retrieve_t'] = retrieve_t
 database['compute_t'] = compute_t
-database['description'] = 'Galicia'
+database['description'] = 'All data'
 
 print 'Net computed in %f seconds.' % (time.time()-t0)
+
 
 #### Plot
 from Mscthesis.Plotting.net_plotting import plot_net_distribution, plot_heat_net
