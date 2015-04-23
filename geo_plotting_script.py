@@ -5,19 +5,37 @@ import numpy as np
 import pandas as pd
 
 #### PARSE DATA
-from Mscthesis.IO.aux_functions import parse_xlsx_sheet
-import pandas as pd
-import numpy as np
-from Mscthesis.Preprocess.preprocess import cnae2str
+#from Mscthesis.IO.aux_functions import parse_xlsx_sheet
+#import pandas as pd
+#import numpy as np
+#from Mscthesis.Preprocess.preprocess import cnae2str
 
 #municipios = parse_xlsx_sheet('Data/municipios-espana_2014_complete.xls')
-servicios2 = parse_xlsx_sheet('Data/clean_data/prunedcleaned_data/Extremadura.xlsx')
-region = pd.DataFrame('Extremadura', index=servicios.index, columns=['Region'])
-servicios = pd.concat([servicios, region], axis=1)
-servicios = cnae2str(servicios)
+#servicios2 = parse_xlsx_sheet('Data/clean_data/prunedcleaned_data/#Extremadura.xlsx')
+#region = pd.DataFrame('Extremadura', index=servicios.index, columns=['Region'])
+#servicios = pd.concat([servicios, region], axis=1)
+#servicios = cnae2str(servicios)
+
+texoutput = 'Data/results/tex_exploratory.tex'
+fileinstructions = 'Data/about_data/stats_instructions.csv'
+cleanedfilesdata = 'Data/clean_data/pruebadata'
+
+statsfiledata = 'Data/Outputs'
+
+# Importing modules
+from Mscthesis.IO import Servicios_Parser
+from os.path import join
+import time
+
+## Parse files
+t0 = time.time()
+servicios_parser = Servicios_Parser(cleaned=False)
+servicios = servicios_parser.parse(cleanedfilesdata)
+print 'Data parsed in %f seconds. Starting computing stats.' % (time.time()-t0)
 
 #### TRANSFORM COORDINATES
-from Mscthesis.Geo_tools.geo_transformations import transf4compdist_spain_global
+from Mscthesis.Geo_tools.geo_transformations import transf4compdist_global_homo
+from Mscthesis.Geo_tools.geo_filters import filter_uncorrect_coord_spain
 from Mscthesis.Retrieve.cnae_utils import transform_cnae_col
 
 types_cc = {'canarias': ['Canarias'], 'ceutamelilla': ['Ceuta_Melilla']}
@@ -36,9 +54,12 @@ del servicios
 
 
 data = data.dropna(how='all')
-data = data[data['ES-X'] != 0]
+#data = data[data['ES-X'] != 0]
+data = filter_uncorrect_coord_spain(data, loc_vars)
+
 data.index = range(data.shape[0])
-data = transf4compdist_spain_global(data, loc_vars, loc_zone_var)
+data = transf4compdist_global_homo(data, loc_vars)
+data = transf4compdist_global_homo(data, loc_vars, True)
 #data[['ES-X', 'ES-Y']] = 
 
 #### GET CNAE index level specified
@@ -52,7 +73,7 @@ type_var='cnae'
 
 t0 = time.time()
 
-net, sectors, N_x = built_network(data, loc_vars, type_var, radius)
+net, sectors, N_x, retrieve_t, compute_t = built_network(data, loc_vars, type_var, radius)
 
 #### SAVING
 import shelve
@@ -63,12 +84,16 @@ database = shelve.open(netobj)
 database['net'] = net
 database['sectors'] = sectors
 database['N_x'] = N_x
+database['retrieve_t'] = retrieve_t
+database['compute_t'] = compute_t
+database['description'] = 'Galicia'
 
 print 'Net computed in %f seconds.' % (time.time()-t0)
 
 #### Plot
 from Mscthesis.Plotting.net_plotting import plot_net_distribution, plot_heat_net
 
+fig1 = plot_net_distribution(net, 50)
 fig2 = plot_heat_net(net, sectors)
 
 

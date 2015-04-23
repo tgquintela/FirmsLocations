@@ -8,6 +8,7 @@ cada tipus, anys d'activitat, etc.
 """
 
 import numpy as np
+from Mscthesis.Geo_tools.geo_filters import filter_uncorrect_coord_spain
 
 
 def filter_servicios(servicios, date, coord_vars=[]):
@@ -16,7 +17,7 @@ def filter_servicios(servicios, date, coord_vars=[]):
     """
     #servicios = filter_by_activity(servicios)
     servicios = filter_by_date(servicios, date)
-    servicios = filter_by_nullcoordinates(servicios, coord_vars)
+    servicios = filter_by_spaincoordinates(servicios, coord_vars)
     indices = servicios.index
     # Transform special columns
     servicios = cp2str(servicios)
@@ -66,6 +67,11 @@ def filter_by_nullcoordinates(servicios, coord_vars):
     servicios = servicios[idxs]
     return servicios
 
+
+def filter_by_spaincoordinates(servicios, coord_vars):
+    """Filter the rows with non correct values of coordinates of spain.
+    """
+    return filter_uncorrect_coord_spain(servicios, coord_vars)
 
 ###############################################################################
 ############################# AUXILIARY FUNCTIONS #############################

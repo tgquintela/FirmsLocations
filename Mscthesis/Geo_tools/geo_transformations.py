@@ -8,7 +8,7 @@ def transf4compdist(coord, mean_lat=0.71088):
     """
 
     coord = np.pi/180.*coord
-    coord[:, 1] = coord[:, 1]*np.cos(mean_lat)
+    coord[:, 0] = coord[:, 0]*np.cos(mean_lat)
     return coord
 
 
@@ -18,7 +18,7 @@ def transf4compdist_inv(coord, mean_lat=0.71088):
     """
 
     coord = 180/np.pi*coord
-    coord[:, 1] = coord[:, 1]/np.cos(mean_lat)
+    coord[:, 0] = coord[:, 0]/np.cos(mean_lat)
     return coord
 
 
@@ -52,4 +52,20 @@ def transf4compdist_spain_global(data, loc_vars, loc_zone_var, inverse=False):
         #data[loc_vars][logi] = aux
         data.loc[logi.reshape(-1), loc_vars] = aux
 #
+    return data
+
+
+def transf4compdist_global_homo(data, loc_vars, inverse=False):
+    """"""
+
+    #aux = data[loc_vars][data[loc_zone_var].as_matrix() == loc_z]
+    if not inverse:
+        data.loc[:, loc_vars] = np.pi/180.*data.loc[:, loc_vars]
+        lats = data.loc[:, loc_vars[1]]
+        #data.loc[:, loc_vars[0]] = data.loc[:, loc_vars[0]]*np.cos(lats)
+    else:
+        lats = data.loc[:, loc_vars[1]]
+        data.loc[:, loc_vars] = 180./np.pi*data.loc[:, loc_vars]
+    #    data.loc[:, loc_vars[0]] = data.loc[:, loc_vars[0]]/np.cos(lats)
+
     return data
