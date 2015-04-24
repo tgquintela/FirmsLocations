@@ -84,7 +84,6 @@ def compute_neigh_count(df, j, type_vals, loc_vars, type_var, radius):
 
     counts = np.zeros((N_j, len(type_vals)))
     for i in range(N_j):
-        t0 = time.time()
         k = elements_j[i]
         neighs = kdtree.query_ball_point(df[loc_vars].as_matrix()[k], radius)
         vals = df[type_var][neighs]
