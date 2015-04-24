@@ -59,7 +59,7 @@ data = filter_uncorrect_coord_spain(data, loc_vars)
 
 data.index = range(data.shape[0])
 data = transf4compdist_global_homo(data, loc_vars)
-data = transf4compdist_global_homo(data, loc_vars, True)
+
 #data[['ES-X', 'ES-Y']] = 
 
 #### GET CNAE index level specified
@@ -96,7 +96,7 @@ from Mscthesis.Plotting.net_plotting import plot_net_distribution, plot_heat_net
 
 fig1 = plot_net_distribution(net, 50)
 fig2 = plot_heat_net(net, sectors)
-
+#data = transf4compdist_global_homo(data, loc_vars, True)
 
 
 
