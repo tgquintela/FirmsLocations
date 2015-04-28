@@ -99,6 +99,18 @@ fig2 = plot_heat_net(net, sectors)
 #data = transf4compdist_global_homo(data, loc_vars, True)
 
 
+output = pd.DataFrame(net, index=sectors, columns=sectors)
+filenamenet = "net%s.csv" % str(radius).replace('.','_')
+output.to_csv(join(netfiledata, filenamenet) , sep=';')
+
+import networkx as nx
+
+net_out = nx.from_numpy_matrix(net)
+net_out = nx.relabel_nodes(net_out, dict(zip(range(len(sectors)), sectors)))
+filenamenet = "net%s.net" % str(radius).replace('.','_')
+nx.write_pajeck(net_out, join(netfiledata, filenamenet)
+
+
 
 #n_x, n_y = 1000, 1000
 #n_levs = 10

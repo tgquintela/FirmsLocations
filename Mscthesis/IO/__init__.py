@@ -19,17 +19,38 @@ from Mscthesis.Preprocess.preprocess import filter_servicios, cnae2str, \
     cp2str, filter_servicios_dict
 from aux_functions import concat_from_dict, write_dataframe_to_excel,\
     write_dataframe_to_csv, get_index_from_dict
-from parse_data import parse_servicios, parse_servicios_columns
+from parse_data import parse_servicios, parse_servicios_columns, \
+    parse_manufactures
 from aux_functions import parse_xlsx_sheet
 
+from write_log import Logger
 
+########### Global variables needed
+##################################################################
+message0 = """========================================
+Start parsing data:
+-------------------
+(%s)
+
+"""
+message1 = "Parsing data:"
+message1a = "Preprocessing, formatting and filtering data:"
+message2 = "completed in %f seconds.\n"
+message3 = "Total time expended parsing process: %f seconds.\n"
+message_close = '----------------------------------------\n'
+
+
+########### Class for parsing
+##################################################################
 class Servicios_Parser():
     """This class is the one which controls the parsing process of servicios
     information.
     """
 
-    def __init__(self, cleaned=False, indices=None):
+    def __init__(self, cleaned=False, indices=None, logfile=None):
         '''Initialization of the parser instance.'''
+        # Logfile
+        self.logfile = Logger(logfile)
         # Assertion condition
         assert(not (indices is None and cleaned))
         # Parameters to save
@@ -45,38 +66,53 @@ class Servicios_Parser():
             self.files['clean'] = filepath
         else:
             self.files['raw'] = filepath
+        # Tracking process with logfile
+        t00 = time.time()
+        self.logfile.write_log(message0 % (filepath.split('/')[-1]))
+        self.logfile.write_log(message1)
         ## 1. Parsing task
-        t0 = time.time()
         if not self.cleaned:
             ### parse files
-            servicios = parse_servicios(filepath)
-            ### filter in parsing (TODO)
+            servicios = parse_servicios(join(filepath, 'SERVICIOS'))
+            ### filter in parsing
             date = datetime.datetime.strptime('2006-01-01', '%Y-%m-%d')
             servicios = filter_servicios_dict(servicios, date, ['ES-X', 'ES-Y'])
             ### get indices
             self.indices = get_index_from_dict(servicios)
             ### Concat servicios
-            servicios = concat_from_dict(servicios, 'Region')
+            servicios = concat_from_dict(servicios, None)
+            ### Parse manufactures
+            manufactures = parse_manufactures(filepath)
+            ### Concat manufacturas y servicios
+            empresas = {'manufacturas': manufactures, 'servicios': servicios}
+            empresas = concat_from_dict(empresas, 'type')
         else:
             ### parse cleaned file
-            servicios = pd.io.parsers.read_csv(filepath)
+            empresas = pd.io.parsers.read_csv(filepath)
             ### get indices
-            self.indices = np.array(servicios.index)
-        print 'Data parsed in %f seconds.' % (time.time()-t0)
+            self.indices = np.array(empresas.index)
+        ## Stop to track the parsing
+        self.logfile.write_log(message2  % (time.time()-t00))
         ## 2. Tranforming
+        # Start tracking process
         t0 = time.time()
-        servicios = self.categorize_cols(servicios)
+        self.logfile.write_log(message1a)
+        ## Transformation
+        empresas = self.categorize_cols(empresas)
         ## 3. Reindex
-        servicios.index = range(servicios.shape[0])
-        print 'Data prepared and filtered in %f seconds.' % (time.time()-t0)
-        return servicios
+        empresas.index = range(empresas.shape[0])
+        ## Closing the tracking
+        self.logfile.write_log(message2 % (time.time()-t0))
+        self.logfile.write_log(message3 % (time.time()-t00))
+        self.logfile.write_log(message_close)
+        return empresas
 
-    def write_servicios(self, servicios, filepath):
+    def write_servicios(self, empresas, filepath):
         '''Write function in order to save a cleaned dataframe in a file.'''
         #self.files['clean'] = join(path, filename)
         self.files['clean'] = filepath
-        write_dataframe_to_csv(servicios, filepath)
-        del servicios
+        write_dataframe_to_csv(empresas, filepath)
+        del empresas
 
     def filter_rows(self, servicios):
         '''Filter to only take into account the active companies in [06-12]'''

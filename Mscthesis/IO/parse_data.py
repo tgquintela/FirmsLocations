@@ -8,6 +8,7 @@ from os.path import isfile, join
 from aux_functions import parse_xlsx_sheet
 import numpy as np
 import pandas as pd
+import datetime
 
 
 ################################# PARSE DATA ##################################
@@ -66,6 +67,8 @@ def parse_manufactures(mypath=None):
     if mypath is None:
         mypath = 'Data/raw_data/'
     manufactures = parse_xlsx_sheet(join(mypath, "Manufactures.xlsx"))
+    f = lambda x: datetime.date(x, 12, 31)
+    manufactures.loc[:, 'cierre'] = manufactures['cierre'].apply(f)
     return manufactures
 
 

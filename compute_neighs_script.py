@@ -2,7 +2,8 @@
 
 
 import time
-from os.path import join
+from os.path import join, exists
+from os import makedirs
 import numpy as np
 import pandas as pd
 
@@ -34,10 +35,10 @@ loc_vars = ['ES-X', 'ES-Y']
 del servicios
 
 
-data = data.dropna(how='all')
-#data = data[data['ES-X'] != 0]
-data = filter_uncorrect_coord_spain(data, loc_vars)
-data.index = range(data.shape[0])
+#data = data.dropna(how='all')
+##data = data[data['ES-X'] != 0]
+#data = filter_uncorrect_coord_spain(data, loc_vars)
+#data.index = range(data.shape[0])
 
 data = transf4compdist_global_homo(data, loc_vars)
 
@@ -47,35 +48,21 @@ data = transf4compdist_global_homo(data, loc_vars)
 data['cnae'] = transform_cnae_col(data['cnae'], 2)
 
 #### Compute matrix
-from Mscthesis.Models.pjensen import built_network
-
-radius = 5.
+from Mscthesis.Geo_tools.geo_retrieve import compute_neighs, compute_neighs_and_save
+radius = .25
+radiuss = [.1, .25, .75, 1]
 type_var='cnae'
+pathfile = 'Data/Outputs/neighs/neighs'
+lim_rows = 100000
 
-t0 = time.time()
-
-net, sectors, N_x, retrieve_t, compute_t = built_network(data, loc_vars, type_var, radius)
-
-#### SAVING
-import shelve
-netfiledata = 'Data/Outputs'
-netobj = "net_object.dat"
-netobj = join(netfiledata, netobj)
-database = shelve.open(netobj)
-database['net'] = net
-database['sectors'] = sectors
-database['N_x'] = N_x
-database['retrieve_t'] = retrieve_t
-database['compute_t'] = compute_t
-database['description'] = 'All data'
-
-print 'Net computed in %f seconds.' % (time.time()-t0)
+for i in range(len(radiuss)):
+    t0 = time.time()
+    aux_str = str(radiuss[i])
+    aux_str = aux_str.replace('.', '_')
+    pathfile_i = pathfile+'_' + aux_str
+    if not exists(pathfile_i): makedirs(pathfile_i)
+    compute_neighs_and_save(data, loc_vars, radiuss[i], pathfile_i, lim_rows)
+    print "Neighs with r=%f km computed in %f seconds." % (radiuss[i], time.time()-t0)
 
 
-#### Plot
-from Mscthesis.Plotting.net_plotting import plot_net_distribution, plot_heat_net
 
-fig1 = plot_net_distribution(net, 50)
-fig2 = plot_heat_net(net, sectors)
-
-#data = transf4compdist_global_homo(data, loc_vars, True)

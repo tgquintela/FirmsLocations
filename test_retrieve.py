@@ -51,26 +51,33 @@ data['cnae'] = transform_cnae_col(data['cnae'], 2)
 radius = 10.
 radius = radius/6371.009
 
+#n = data.shape[0]
+n = 100
+
 ## kdtree
 from scipy.spatial import KDTree
 t0 = time.time()
 kdtree = KDTree(data[loc_vars].as_matrix(), leafsize=10000)
 
-for i in range(data.shape[0]):
+neighss = []
+for i in range(n):
     neighs = kdtree.query_ball_point(data[loc_vars].as_matrix()[i], radius)
+    neighss.append(np.array(neighs))
 print "KDTree finished in %f seconds." % (time.time()-t0)
 
 ## manual retrieve
 t0 = time.time()
 
-for i in range(data.shape[0]):
+neighss2 = []
+for i in range(n):
     point = data[loc_vars].as_matrix()[i]
     logi = np.ones(data.shape[0]).astype(bool)
     logi = np.logical_and(logi, data[loc_vars].as_matrix()[:,0] <= point[0]+radius)
     logi = np.logical_and(logi, data[loc_vars].as_matrix()[:,0] >= point[0]-radius)
     logi = np.logical_and(logi, data[loc_vars].as_matrix()[:,1] <= point[1]+radius)
     logi = np.logical_and(logi, data[loc_vars].as_matrix()[:,1] >= point[1]-radius)
-    neighs = np.where(logi)
+    neighs = np.where(logi)[0]
+    neighss2.append(neighs)
 print "Manual retrieve finished in %f seconds." % (time.time()-t0)
 
 

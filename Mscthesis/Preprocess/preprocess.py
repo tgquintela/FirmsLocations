@@ -125,7 +125,7 @@ def to_float(df):
     columns = df.columns
     for col in columns:
         if col in cols:
-            df[col] = df[col]
+            df.loc[:, col] = df[col]
     return df
 
 
@@ -136,5 +136,5 @@ def to_int(df):
     columns = df.columns
     for col in columns:
         if col in cols:
-            df[col] = df[col].astype(int)
+            df.loc[:, col] = df[col].astype(int)
     return df
