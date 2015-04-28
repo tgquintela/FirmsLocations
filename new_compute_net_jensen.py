@@ -22,29 +22,17 @@ from Mscthesis.Geo_tools.geo_transformations import transf4compdist_global_homo
 from Mscthesis.Geo_tools.geo_filters import filter_uncorrect_coord_spain
 from Mscthesis.Retrieve.cnae_utils import transform_cnae_col
 
-data = servicios[['cnae', 'ES-X', 'ES-Y']]
-loc_vars = ['ES-X', 'ES-Y']
+data = servicios[['cnae']]
 del servicios
-
-# Transformation
-data = transf4compdist_global_homo(data, loc_vars)
 
 #### GET CNAE index level specified
 data['cnae'] = transform_cnae_col(data['cnae'], 2)
 
-#### Compute matrix
-from Mscthesis.Geo_tools.geo_retrieve import Compute_self_neighs
 
-radius = [7.5, 10.]
-type_var='cnae'
-basepathf = 'Data/Outputs/neighs/neighs_'
-pathfile = [basepathf+str(radius[i]).replace('.', '_') for i in range(len(radius))]
-filenames = ['neighs']*len(radius)
-lim_rows = [10000, 10000]
+### Test for a given distance
+from Mscthesis.Models.pjensen import Pjensen
+neighs_dir = 'Data/Outputs/neighs/neighs_0_5'
 
-comp_neighs = Compute_self_neighs(pathfile, filenames, lim_rows, radius, logfile)
-comp_neighs.compute_neighs(data, loc_vars)
-
-
-
+pjensen = Pjensen(logfile, neighs_dir)
+net, type_vals, N_x = pjensen.built_network_from_neighs(data, 'cnae')
 

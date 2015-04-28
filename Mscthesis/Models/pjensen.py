@@ -61,7 +61,7 @@ class Pjensen():
         corr_loc = np.zeros((n_vals, n_vals))
         for f in self.neighs_files:
             ## Begin to track the process
-            self.logfile(message1 % (f.split('/')[-1]))
+            self.logfile.write_log(message1 % (f.split('/')[-1]))
             t0 = time.time()
             ## Read the file of neighs
             neighs = pd.read_csv(f, sep=';', index_col=0)
@@ -70,13 +70,13 @@ class Pjensen():
                                                        neighs, type_vals)
             corr_loc += corr_loc_f
             ## Finish to track this process
-            self.logfile(message2 % (time.time()-t0))
+            self.logfile.write_log(message2 % (time.time()-t0))
         ## 2. Building a net
         C = global_constants_jensen(n_vals, N_t, N_x)
         net = np.log10(np.multiply(C, corr_loc))
         ## Closing process
-        self.logfile(message3 % (time.time()-t00))
-        self.logfile(message_close)
+        self.logfile.write_log(message3 % (time.time()-t00))
+        self.logfile.write_log(message_close)
         return net, type_vals, N_x
 
     def build_random_nets(self, df, type_var, n):
@@ -117,7 +117,7 @@ def local_jensen_corr_from_neighs(df, type_var, neighs, type_vals):
             corr_loc_j = counts_j/(counts_j.sum()-counts_j[idx])
             corr_loc_j[idx] = counts_j[idx]/counts_j.sum()
         ## Aggregate to local correlation
-        corr_loc[idx, :] += corr_loc
+        corr_loc[idx, :] += corr_loc[idx, :]
     return corr_loc
 
 
