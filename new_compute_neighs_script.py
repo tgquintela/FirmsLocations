@@ -36,13 +36,14 @@ data['cnae'] = transform_cnae_col(data['cnae'], 2)
 #### Compute matrix
 from Mscthesis.Geo_tools.geo_retrieve import Compute_self_neighs
 
-radiuss = [.75, 1.]
+radius = [7.5, 10.]
 type_var='cnae'
-pathfile = ['Data/Outputs/neighs/neighs_0_75', 'Data/Outputs/neighs/neighs_1_0']
-filenames = ['neighs', 'neighs']
-lim_rows = [75000, 50000]
+basepathf = 'Data/Outputs/neighs/neighs_'
+pathfile = [basepathf+str(radius[i]).replace('.', '_') for i in range(len(radius))]
+filenames = ['neighs']*len(radius)
+lim_rows = [10000, 10000]
 
-comp_neighs = Compute_self_neighs(pathfile, filenames, lim_rows, radiuss, logfile)
+comp_neighs = Compute_self_neighs(pathfile, filenames, lim_rows, radius, logfile)
 comp_neighs.compute_neighs(data, loc_vars)
 
 
