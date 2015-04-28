@@ -5,6 +5,7 @@ spatial correlation using Jensen model.
 """
 
 import numpy as np
+import pandas as pd
 #import networkx as nx
 from scipy.spatial import KDTree
 
@@ -13,6 +14,7 @@ import os
 from os.path import join
 
 from Mscthesis.IO.write_log import Logger
+from model_utils import filter_with_random_nets
 
 
 ########### Global variables needed
@@ -40,10 +42,10 @@ class Pjensen():
         self.logfile = Logger(logfile)
         if neighs_dir is not None:
             self.neighs_dir = neighs_dir
-            self.neighs_files = os.listdir(neighs_dir)
-            self.neighs_files = [join(neighs_dir, f) for f in self.neighs_files]
+            neighs_files = os.listdir(neighs_dir)
+            self.neighs_files = [join(neighs_dir, f) for f in neighs_files]
 
-    def built_network_from_neighs(self, df, type_var):
+    def built_network_from_neighs(self, df, type_var, reindex=None):
         """Main function to perform spatial correlation computation."""
         ## 0. Setting needed variables
         self.logfile.write_log(message0 % self.neighs_dir)
@@ -53,7 +55,8 @@ class Pjensen():
         n_vals = len(type_vals)
         # General counts
         N_t = df.shape[0]
-        N_x = np.array([np.sum(df[type_var] == type_v) for type_v in type_vals])
+        N_x = [np.sum(df[type_var] == type_v) for type_v in type_vals]
+        N_x = np.array(N_x)
         ## 1. Computation of local spatial correlations
         corr_loc = np.zeros((n_vals, n_vals))
         for f in self.neighs_files:
@@ -69,12 +72,22 @@ class Pjensen():
             ## Finish to track this process
             self.logfile(message2 % (time.time()-t0))
         ## 2. Building a net
-        C = global_constants_jensen(n_vals, Nt, Nx)
+        C = global_constants_jensen(n_vals, N_t, N_x)
         net = np.log10(np.multiply(C, corr_loc))
         ## Closing process
         self.logfile(message3 % (time.time()-t00))
         self.logfile(message_close)
         return net, type_vals, N_x
+
+    def build_random_nets(self, df, type_var, n):
+        """Montecarlo creation of random nets by permutation."""
+        n_vals = len(list(df[type_var].unique()))
+        random_nets = np.zeros((n_vals, n_vals, n))
+        for i in range(n):
+            reindex = np.random.permutation(np.array(df.index))
+            random_nets[:, :, i] = self.built_network_from_neighs(df, type_var,
+                                                                  reindex)
+        return random_nets
 
 
 ###############################################################################
@@ -108,20 +121,20 @@ def local_jensen_corr_from_neighs(df, type_var, neighs, type_vals):
     return corr_loc
 
 
-def global_constants_jensen(n_vals, Nt, Nx):
+def global_constants_jensen(n_vals, N_t, N_x):
     ## Building the normalizing constants
     C = np.zeros((n_vals, n_vals))
     for i in range(n_vals):
         for j in range(n_vals):
             if i == j:
-                C[i, j] = (N_t-1)/(Nx[i]*(Nx[i]-1))
+                C[i, j] = (N_t-1)/(N_x[i]*(N_x[i]-1))
             else:
-                C[i, j] = (N_t-Nx[i])/(Nx[i]*Nx[j])
+                C[i, j] = (N_t-N_x[i])/(N_x[i]*N_x[j])
     return C
 
 
 ####### COMPLETE FUNCTIONS
-#####################################################################################
+###############################################################################
 def built_network(df, loc_vars, type_var, radius):
     """Function for building the network from the locations."""
 
@@ -159,7 +172,7 @@ def built_network(df, loc_vars, type_var, radius):
         net[i, :] = aux
 
         ##########
-        print "Finished %s in %f seconds." %(type_vals[i], time.time()-t0)
+        print "Finished %s in %f seconds." % (type_vals[i], time.time()-t0)
         compute_t += time.time()-t1
         ##########
 
@@ -215,15 +228,13 @@ def jensen_net_from_neighs(df, type_var, neighs_dir):
     N_t = df.shape[0]
     N_x = np.array([np.sum(df[type_var] == type_v) for type_v in type_vals])
 
-    retrieve_t, compute_t = 0, 0
-
     ## See the files in a list
     files_dir = os.listdir(neighs_dir)
     files_dir = [join(neighs_dir, f) for f in files_dir]
 
     ## Building the sum of local correlations
     corr_loc = np.zeros((n_vals, n_vals))
-    for f in files_list:
+    for f in files_dir:
         neighs = pd.read_csv(f, sep=';', index_col=0)
         indices = np.array(neighs.index)
         for j in indices:

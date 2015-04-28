@@ -14,11 +14,12 @@ import datetime
 from os.path import join
 import os
 import time
+import numpy as np
 
 from Mscthesis.Preprocess.preprocess import filter_servicios, cnae2str, \
     cp2str, filter_servicios_dict
-from aux_functions import concat_from_dict, write_dataframe_to_excel,\
-    write_dataframe_to_csv, get_index_from_dict
+from aux_functions import concat_from_dict, write_dataframe_to_csv, \
+    get_index_from_dict
 from parse_data import parse_servicios, parse_servicios_columns, \
     parse_manufactures
 from aux_functions import parse_xlsx_sheet
@@ -33,8 +34,8 @@ Start parsing data:
 (%s)
 
 """
-message1 = "Parsing data:"
-message1a = "Preprocessing, formatting and filtering data:"
+message1 = "Parsing data: "
+message1a = "Preprocessing, formatting and filtering data: "
 message2 = "completed in %f seconds.\n"
 message3 = "Total time expended parsing process: %f seconds.\n"
 message_close = '----------------------------------------\n'
@@ -76,7 +77,8 @@ class Servicios_Parser():
             servicios = parse_servicios(join(filepath, 'SERVICIOS'))
             ### filter in parsing
             date = datetime.datetime.strptime('2006-01-01', '%Y-%m-%d')
-            servicios = filter_servicios_dict(servicios, date, ['ES-X', 'ES-Y'])
+            loc_vars = ['ES-X', 'ES-Y']
+            servicios = filter_servicios_dict(servicios, date, loc_vars)
             ### get indices
             self.indices = get_index_from_dict(servicios)
             ### Concat servicios
@@ -92,7 +94,7 @@ class Servicios_Parser():
             ### get indices
             self.indices = np.array(empresas.index)
         ## Stop to track the parsing
-        self.logfile.write_log(message2  % (time.time()-t00))
+        self.logfile.write_log(message2 % (time.time()-t00))
         ## 2. Tranforming
         # Start tracking process
         t0 = time.time()

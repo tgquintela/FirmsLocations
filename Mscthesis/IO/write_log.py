@@ -18,7 +18,6 @@ class Logger:
     def __init__(self, logfile):
         self.logfile = logfile
         if not exists(logfile):
-            f = open(logfile, 'a+')
             initial = self.mark_datetime('Creation of the logfile')
             self.write_log(initial, False)
 
@@ -41,8 +40,9 @@ class Logger:
 
     def get_datetime(self):
         """Easy and quick way to get datetime."""
-        dtime = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')        
+        dtime = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
         return dtime
+
 
 def append_line_file(filename, line):
     f = open(filename, 'a')
