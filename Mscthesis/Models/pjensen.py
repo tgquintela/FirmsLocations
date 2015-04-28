@@ -117,7 +117,7 @@ def local_jensen_corr_from_neighs(df, type_var, neighs, type_vals):
             corr_loc_j = counts_j/(counts_j.sum()-counts_j[idx])
             corr_loc_j[idx] = counts_j[idx]/counts_j.sum()
         ## Aggregate to local correlation
-        corr_loc[idx, :] += corr_loc
+        corr_loc[idx, :] += corr_loc[idx, :]
     return corr_loc
 
 
@@ -269,3 +269,4 @@ def jensen_net_from_neighs(df, type_var, neighs_dir):
     ## Building a net
     net = np.log10(np.multiply(C, corr_loc))
     return net, type_vals, N_x
+
