@@ -57,29 +57,12 @@ class Pjensen():
         ## 0. Setting needed variables
         self.logfile.write_log(message0 % self.neighs_dir)
         t00 = time.time()
-        # Inform
-        bool_inform = True if self.lim_rows is not None else False
-        # Values
-        type_vals = list(df[type_var].unique())
-        n_vals = len(type_vals)
-        repl = dict(zip(type_vals, range(n_vals)))
-        cnae_arr = np.array(df[type_var].replace(repl))
-        # Global stats
-        N_t = df.shape[0]
-        N_x = [np.sum(df[type_var] == type_v) for type_v in type_vals]
-        N_x = np.array(N_x)
+        # Preparing needed vars
+        aux = preparing_net_computation(df, type_var, self.lim_rows, permuts)
+        cnae_arr, type_vals, n_vals, N_t, N_x = aux[:5]
+        reindices, n_calc, bool_inform = aux[5:]
         # KDTree retrieve object instantiation
         kdtree = KDTree(df[loc_vars].as_matrix(), leafsize=10000)
-        # Preparing reindices
-        reindex = np.array(df.index)
-        reindex = reindex.reshape((reindex.shape[0], 1))
-        if permuts is not None:
-            n_per = permuts.shape[1]
-            permuts = [reindex[permuts[:, i]] for i in range(n_per)]
-            permuts = np.array(permuts).T
-        reindex = [reindex] if permuts is None else [reindex, permuts]
-        reindices = np.hstack(reindex)
-        n_calc = reindices.shape[1]
 
         ## 1. Computation of the local spatial correlation with M-index
         corr_loc = np.zeros((n_vals, n_vals, n_calc))
@@ -88,26 +71,18 @@ class Pjensen():
         t0 = time.time()
         for i in range(N_t):
             ## Obtaining neighs of a given point
-            t1 = time.time()
             point_i = df.loc[indices[i], loc_vars].as_matrix()
             neighs = kdtree.query_ball_point(point_i, radius)
             ## Loop over the possible reindices
-            t1 = time.time()
             for k in range(n_calc):
                 #val_i = df.loc[reindices[i, k], type_var]
                 val_i = cnae_arr[reindices[i, k]]
                 neighs_k = reindices[neighs, k]
                 vals = cnae_arr[neighs_k]
-                #vals = df.loc[neighs_k, type_var]
                 ## Count the number of companies of each type
-                counts_i = np.zeros(len(type_vals))
-                #count = [np.count_nonzero(vals == v) for v in range(n_vals)]
-                count = [np.count_nonzero(np.equal(vals, v)) for v in range(n_vals)]
-                count = np.array(count)
-                #for val in range(n_vals):
-                #    counts_i[val] = np.count_nonzero(vals == val)
-                #counts_i = np.array([np.sum(vals == val) for val in type_vals])
-                #idx = type_vals.index(val_i)
+                nv = n_vals
+                c = [np.count_nonzero(np.equal(vals, v)) for v in range(nv)]
+                counts_i = np.array(c)
                 idx = val_i
                 ## Compute the correlation contribution
                 counts_i[idx] -= 1
@@ -184,6 +159,34 @@ class Pjensen():
 ###############################################################################
 ###############################################################################
 ###############################################################################
+def preparing_net_computation(df, type_var, lim_rows, permuts):
+    # Inform
+    bool_inform = True if lim_rows is not None else False
+    # Values
+    type_vals = list(df[type_var].unique())
+    n_vals = len(type_vals)
+    repl = dict(zip(type_vals, range(n_vals)))
+    cnae_arr = np.array(df[type_var].replace(repl))
+    # Global stats
+    N_t = df.shape[0]
+    N_x = [np.sum(df[type_var] == type_v) for type_v in type_vals]
+    N_x = np.array(N_x)
+    # Preparing reindices
+    reindex = np.array(df.index)
+    reindex = reindex.reshape((reindex.shape[0], 1))
+    if permuts is not None:
+        n_per = permuts.shape[1]
+        permuts = [reindex[permuts[:, i]] for i in range(n_per)]
+        permuts = np.array(permuts).T
+    reindex = [reindex] if permuts is None else [reindex, permuts]
+    reindices = np.hstack(reindex)
+    n_calc = reindices.shape[1]
+
+    output = (cnae_arr, type_vals, n_vals, N_t, N_x, reindices,
+              n_calc, bool_inform)
+    return output
+
+
 def local_jensen_corr_from_neighs(df, type_var, neighs, type_vals):
     """"""
     ## Global variables
