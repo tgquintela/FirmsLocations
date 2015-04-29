@@ -109,8 +109,10 @@ class Pjensen():
                 ####
                 ## Count the number of companies of each type
                 counts_i = np.zeros(len(type_vals))
-                for val in range(n_vals):
-                    counts_i[val] = np.sum(vals == val)
+                count = [np.count_nonzero(vals == v) for v in range(n_vals)]
+                count = np.array(count)
+                #for val in range(n_vals):
+                #    counts_i[val] = np.count_nonzero(vals == val)
                 #counts_i = np.array([np.sum(vals == val) for val in type_vals])
                 #idx = type_vals.index(val_i)
                 idx = val_i
