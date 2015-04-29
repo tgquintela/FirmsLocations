@@ -31,6 +31,9 @@ message2a = "Bunch of %s rows completed in %f seconds.\n"
 message3 = "Total time expended computing net: %f seconds.\n"
 message_close = '----------------------------------------\n'
 
+m_debug1 = "Retrieving neighs in %f seconds."
+m_debug2 = "Computing M-index in %f seconds."
+
 
 ########### Class for computing
 ##################################################################
@@ -82,9 +85,12 @@ class Pjensen():
         t0 = time.time()
         for i in range(N_t):
             ## Obtaining neighs of a given point
+            t1 = time.time()
             point_i = df.loc[indices[i], loc_vars].as_matrix()
             neighs = kdtree.query_ball_point(point_i, radius)
+            self.logfile.write_log(m_debug1 % (time.time()-t1))
             ## Loop over the possible reindices
+            t1 = time.time()
             for k in range(n_calc):
                 val_i = df.loc[reindices[i, k], type_var]
                 neighs_k = reindices[neighs, k]
@@ -103,6 +109,7 @@ class Pjensen():
                 ## Aggregate to local correlation
                 corr_loc[idx, :, k] += corr_loc_i
             ## Finish to track this process
+            self.logfile.write_log(m_debug2 % (time.time()-t1))
             if bool_inform and (i % self.lim_rows) == 0 and i != 0:
                 t_sp = time.time()-t0
                 self.logfile.write_log(message2a % (self.lim_rows, t_sp))
