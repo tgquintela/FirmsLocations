@@ -27,6 +27,7 @@ Start inferring net:
 """
 message1 = "Processing %s:"
 message2 = "completed in %f seconds.\n"
+message2a = "Bunch of %s rows completed in %f seconds.\n"
 message3 = "Total time expended computing net: %f seconds.\n"
 message_close = '----------------------------------------\n'
 
@@ -77,10 +78,9 @@ class Pjensen():
         ## 1. Computation of the local spatial correlation with M-index
         corr_loc = np.zeros((n_vals, n_vals, n_calc))
         indices = np.array(df.index)
+        ## Begin to track the process
+        t0 = time.time()
         for i in range(N_t):
-            ## Begin to track the process
-            if bool_inform and (i % self.lim_rows) == 0:
-                t0 = time.time()
             ## Obtaining neighs of a given point
             point_i = df.loc[indices[i], loc_vars].as_matrix()
             neighs = kdtree.query_ball_point(point_i, radius)
@@ -102,7 +102,11 @@ class Pjensen():
                     corr_loc_i[idx] = counts_i[idx]/counts_i.sum()
                 ## Aggregate to local correlation
                 corr_loc[idx, :, k] += corr_loc_i
-
+            ## Finish to track this process
+            if bool_inform and (i % self.lim_rows) == 0 and i != 0:
+                t_sp = time.time()-t0
+                self.logfile.write_log(message2a % (self.lim_rows, t_sp))
+                t0 = time.time()
         ## 2. Building a net
         C = global_constants_jensen(n_vals, N_t, N_x)
         # Computing the nets
