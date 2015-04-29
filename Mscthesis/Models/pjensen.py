@@ -38,12 +38,13 @@ class Pjensen():
     Model of spatial correlation inference.
     """
 
-    def __init__(self, logfile=None, neighs_dir=None):
+    def __init__(self, logfile=None, neighs_dir=None, lim_rows=None):
         self.logfile = Logger(logfile)
         if neighs_dir is not None:
             self.neighs_dir = neighs_dir
             neighs_files = os.listdir(neighs_dir)
             self.neighs_files = [join(neighs_dir, f) for f in neighs_files]
+            self.lim_rows = lim_rows
 
     def built_nets(self, df, type_var, loc_vars, radius, permuts=None):
         """Main unction for building the network from neighbours using M-index.
@@ -51,6 +52,8 @@ class Pjensen():
         ## 0. Setting needed variables
         self.logfile.write_log(message0 % self.neighs_dir)
         t00 = time.time()
+        # Inform
+        bool_inform = True if self.lim_rows is not None else False
         # Values
         type_vals = list(df[type_var].unique())
         n_vals = len(type_vals)
@@ -61,7 +64,7 @@ class Pjensen():
         # KDTree retrieve object instantiation
         kdtree = KDTree(df[loc_vars].as_matrix(), leafsize=10000)
         # Preparing reindices
-        reindex = np.array(df.index())
+        reindex = np.array(df.index)
         reindex = reindex.reshape((reindex.shape[0], 1))
         if permuts is not None:
             n_per = permuts.shape[1]
@@ -73,8 +76,11 @@ class Pjensen():
 
         ## 1. Computation of the local spatial correlation with M-index
         corr_loc = np.zeros((n_vals, n_vals, n_calc))
-        indices = np.array(df.index())
+        indices = np.array(df.index)
         for i in range(N_t):
+            ## Begin to track the process
+            if bool_inform and (i % self.lim_rows) == 0:
+                t0 = time.time()
             ## Obtaining neighs of a given point
             point_i = df.loc[indices[i], loc_vars].as_matrix()
             neighs = kdtree.query_ball_point(point_i, radius)
@@ -96,6 +102,7 @@ class Pjensen():
                     corr_loc_i[idx] = counts_i[idx]/counts_i.sum()
                 ## Aggregate to local correlation
                 corr_loc[idx, :, k] += corr_loc_i
+
         ## 2. Building a net
         C = global_constants_jensen(n_vals, N_t, N_x)
         # Computing the nets
