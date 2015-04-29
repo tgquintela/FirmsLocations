@@ -91,7 +91,6 @@ class Pjensen():
             t1 = time.time()
             point_i = df.loc[indices[i], loc_vars].as_matrix()
             neighs = kdtree.query_ball_point(point_i, radius)
-            self.logfile.write_log(m_debug1 % (time.time()-t1))
             ## Loop over the possible reindices
             t1 = time.time()
             for k in range(n_calc):
@@ -102,7 +101,8 @@ class Pjensen():
                 #vals = df.loc[neighs_k, type_var]
                 ## Count the number of companies of each type
                 counts_i = np.zeros(len(type_vals))
-                count = [np.count_nonzero(vals == v) for v in range(n_vals)]
+                #count = [np.count_nonzero(vals == v) for v in range(n_vals)]
+                count = [np.count_nonzero(np.equal(vals, v)) for v in range(n_vals)]
                 count = np.array(count)
                 #for val in range(n_vals):
                 #    counts_i[val] = np.count_nonzero(vals == val)
@@ -121,7 +121,6 @@ class Pjensen():
                 ## Aggregate to local correlation
                 corr_loc[idx, :, k] += corr_loc_i
             ## Finish to track this process
-            self.logfile.write_log(m_debug2 % (time.time()-t1))
             if bool_inform and (i % self.lim_rows) == 0 and i != 0:
                 t_sp = time.time()-t0
                 self.logfile.write_log(message2a % (self.lim_rows, t_sp))
