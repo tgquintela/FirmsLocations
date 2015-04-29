@@ -102,7 +102,8 @@ class Pjensen():
                 #vals = df.loc[neighs_k, type_var]
                 ## Count the number of companies of each type
                 counts_i = np.zeros(len(type_vals))
-                count = [np.count_nonzero(vals == v) for v in range(n_vals)]
+                #count = [np.count_nonzero(vals == v) for v in range(n_vals)]
+                count = [np.count_nonzero(np.equal(vals,v)) for v in range(n_vals)]
                 count = np.array(count)
                 #for val in range(n_vals):
                 #    counts_i[val] = np.count_nonzero(vals == val)
