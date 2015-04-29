@@ -95,18 +95,11 @@ class Pjensen():
             ## Loop over the possible reindices
             t1 = time.time()
             for k in range(n_calc):
-                ###
-                t2 = time.time()
-                ###
                 #val_i = df.loc[reindices[i, k], type_var]
                 val_i = cnae_arr[reindices[i, k]]
                 neighs_k = reindices[neighs, k]
                 vals = cnae_arr[neighs_k]
                 #vals = df.loc[neighs_k, type_var]
-                ####
-                self.logfile.write_log(m_debug3 % (time.time()-t2))
-                t2 = time.time()
-                ####
                 ## Count the number of companies of each type
                 counts_i = np.zeros(len(type_vals))
                 count = [np.count_nonzero(vals == v) for v in range(n_vals)]
@@ -117,9 +110,6 @@ class Pjensen():
                 #idx = type_vals.index(val_i)
                 idx = val_i
                 ## Compute the correlation contribution
-                ###
-                self.logfile.write_log(m_debug3 % (time.time()-t2))
-                ###
                 counts_i[idx] -= 1
                 tot = counts_i.sum()
                 if counts_i[idx] == tot:
