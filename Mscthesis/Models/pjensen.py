@@ -33,6 +33,7 @@ message_close = '----------------------------------------\n'
 
 m_debug1 = "Retrieving neighs in %f seconds."
 m_debug2 = "Computing M-index in %f seconds."
+m_debug3 = "%f"
 
 
 ########### Class for computing
@@ -92,6 +93,9 @@ class Pjensen():
             ## Loop over the possible reindices
             t1 = time.time()
             for k in range(n_calc):
+                ###
+                t2 = time.time()
+                ###
                 val_i = df.loc[reindices[i, k], type_var]
                 neighs_k = reindices[neighs, k]
                 vals = df.loc[neighs_k, type_var]
@@ -99,6 +103,10 @@ class Pjensen():
                 counts_i = np.array([np.sum(vals == val) for val in type_vals])
                 idx = type_vals.index(val_i)
                 ## Compute the correlation contribution
+                ###
+                self.logfile.write_log(m_debug3 % (time.time()-t2))
+                t2 = time.time()
+                ###
                 counts_i[idx] -= 1
                 if counts_i[idx] == counts_i.sum():
                     corr_loc_i = np.zeros(n_vals)
@@ -109,6 +117,7 @@ class Pjensen():
                 ## Aggregate to local correlation
                 corr_loc[idx, :, k] += corr_loc_i
             ## Finish to track this process
+            self.logfile.write_log(m_debug3 % (time.time()-t2))
             self.logfile.write_log(m_debug2 % (time.time()-t1))
             if bool_inform and (i % self.lim_rows) == 0 and i != 0:
                 t_sp = time.time()-t0
