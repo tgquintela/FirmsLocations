@@ -104,7 +104,8 @@ class Pjensen():
                 t2 = time.time()
                 ####
                 ## Count the number of companies of each type
-                counts_i = np.array([np.sum(vals == val) for val in type_vals])
+                #counts_i = np.array([np.sum(vals == val) for val in type_vals])
+                counts_i = np.zeros(len(type_vals))
                 idx = type_vals.index(val_i)
                 ## Compute the correlation contribution
                 ###
