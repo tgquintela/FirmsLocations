@@ -45,6 +45,68 @@ class Pjensen():
             neighs_files = os.listdir(neighs_dir)
             self.neighs_files = [join(neighs_dir, f) for f in neighs_files]
 
+    def built_nets(self, df, type_var, loc_vars, radius, permuts=None):
+        """Main unction for building the network from neighbours using M-index.
+        """
+        ## 0. Setting needed variables
+        self.logfile.write_log(message0 % self.neighs_dir)
+        t00 = time.time()
+        # Values
+        type_vals = list(df[type_var].unique())
+        n_vals = len(type_vals)
+        # Global stats
+        N_t = df.shape[0]
+        N_x = [np.sum(df[type_var] == type_v) for type_v in type_vals]
+        N_x = np.array(N_x)
+        # KDTree retrieve object instantiation
+        kdtree = KDTree(df[loc_vars].as_matrix(), leafsize=10000)
+        # Preparing reindices
+        reindex = np.array(df.index())
+        reindex = reindex.reshape((reindex.shape[0], 1))
+        if permuts is not None:
+            n_per = permuts.shape[1]
+            permuts = [reindex[permuts[:, i]] for i in range(n_per)]
+            permuts = np.array(permuts).T
+        reindex = [reindex] if permuts is None else [reindex, permuts]
+        reindices = np.hstack(reindex)
+        n_calc = reindices.shape[1]
+
+        ## 1. Computation of the local spatial correlation with M-index
+        corr_loc = np.zeros((n_vals, n_vals, n_calc))
+        indices = np.array(df.index())
+        for i in range(N_t):
+            ## Obtaining neighs of a given point
+            point_i = df.loc[indices[i], loc_vars].as_matrix()
+            neighs = kdtree.query_ball_point(point_i, radius)
+            ## Loop over the possible reindices
+            for k in range(n_calc):
+                val_i = df.loc[reindices[i, k], type_var]
+                neighs_k = reindices[neighs, k]
+                vals = df.loc[neighs_k, type_var]
+                ## Count the number of companies of each type
+                counts_i = np.array([np.sum(vals == val) for val in type_vals])
+                idx = type_vals.index(val_i)
+                ## Compute the correlation contribution
+                counts_i[idx] -= 1
+                if counts_i[idx] == counts_i.sum():
+                    corr_loc_i = np.zeros(n_vals)
+                    corr_loc_i[idx] = counts_i[idx]/counts_i.sum()
+                else:
+                    corr_loc_i = counts_i/(counts_i.sum()-counts_i[idx])
+                    corr_loc_i[idx] = counts_i[idx]/counts_i.sum()
+                ## Aggregate to local correlation
+                corr_loc[idx, :, k] += corr_loc_i
+        ## 2. Building a net
+        C = global_constants_jensen(n_vals, N_t, N_x)
+        # Computing the nets
+        net = np.zeros((n_vals, n_vals, n_calc))
+        for i in range(n_calc):
+            net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
+        ## Closing process
+        self.logfile.write_log(message3 % (time.time()-t00))
+        self.logfile.write_log(message_close)
+        return net, type_vals, N_x
+
     def built_network_from_neighs(self, df, type_var, reindex=None):
         """Main function to perform spatial correlation computation."""
         ## 0. Setting needed variables
@@ -262,11 +324,75 @@ def jensen_net_from_neighs(df, type_var, neighs_dir):
     for i in range(n_vals):
         for j in range(n_vals):
             if i == j:
-                C[i, j] = (N_t-1)/(Nx[i]*(Nx[i]-1))
+                C[i, j] = (N_t-1)/(N_x[i]*(N_x[i]-1))
             else:
-                C[i, j] = (N_t-Nx[i])/(Nx[i]*Nx[j])
+                C[i, j] = (N_t-N_x[i])/(N_x[i]*N_x[j])
 
     ## Building a net
     net = np.log10(np.multiply(C, corr_loc))
     return net, type_vals, N_x
 
+
+def jensen_net(df, type_var, loc_vars, radius, permutations=None):
+    """Function for building the network from neighbours."""
+
+    ## 0. Set needed values
+    # Values
+    type_vals = list(df[type_var].unique())
+    n_vals = len(type_vals)
+    # Global stats
+    N_t = df.shape[0]
+    N_x = np.array([np.sum(df[type_var] == type_v) for type_v in type_vals])
+    # KDTree retrieve object instantiation
+    kdtree = KDTree(df[loc_vars].as_matrix(), leafsize=10000)
+    # Preparing reindices
+    reindex = np.array(df.index())
+    reindex = reindex.reshape((reindex.shape[0], 1))
+    if permutations is not None:
+        n_per = permutations.shape[1]
+        permutations = [reindex[permutations[:, i]] for i in range(n_per)]
+        permutations = np.array(permutations).T
+    reindex = [reindex] if permutations is None else [reindex, permutations]
+    reindices = np.hstack(reindex)
+    n_calc = reindices.shape[1]
+
+    ## 1. Computation of the local spatial correlation with M-index
+    corr_loc = np.zeros((n_vals, n_vals, n_calc))
+    indices = np.array(df.index())
+    for i in range(N_t):
+        ## Obtaining neighs of a given point
+        point_i = df.loc[indices[i], loc_vars].as_matrix()
+        neighs = kdtree.query_ball_point(point_i, radius)
+        ## Loop over the possible reindices
+        for k in range(n_calc):
+            val_i = df.loc[reindices[i, k], type_var]
+            neighs_k = reindices[neighs, k]
+            vals = df.loc[neighs_k, type_var]
+            ## Count the number of companies of each type
+            counts_i = np.array([np.sum(vals == val) for val in type_vals])
+            idx = type_vals.index(val_i)
+            ## Compute the correlation contribution
+            counts_i[idx] -= 1
+            if counts_i[idx] == counts_i.sum():
+                corr_loc_i = np.zeros(n_vals)
+                corr_loc_i[idx] = counts_i[idx]/counts_i.sum()
+            else:
+                corr_loc_i = counts_i/(counts_i.sum()-counts_i[idx])
+                corr_loc_i[idx] = counts_i[idx]/counts_i.sum()
+            ## Aggregate to local correlation
+            corr_loc[idx, :, k] += corr_loc_i
+
+    ## 2. Building the normalizing constants
+    C = np.zeros((n_vals, n_vals))
+    for i in range(n_vals):
+        for j in range(n_vals):
+            if i == j:
+                C[i, j] = (N_t-1)/(N_x[i]*(N_x[i]-1))
+            else:
+                C[i, j] = (N_t-N_x[i])/(N_x[i]*N_x[j])
+
+    ## 3. Building the nets
+    net = np.zeros((n_vals, n_vals, n_calc))
+    for i in range(n_calc):
+        net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
+    return net, type_vals, N_x
