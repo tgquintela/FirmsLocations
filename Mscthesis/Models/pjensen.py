@@ -63,7 +63,7 @@ class Pjensen():
         type_vals = list(df[type_var].unique())
         n_vals = len(type_vals)
         repl = dict(zip(type_vals, range(n_vals)))
-        cnae_arr = np.array(df[type_var])
+        cnae_arr = np.array(df[type_var].replace(repl))
         # Global stats
         N_t = df.shape[0]
         N_x = [np.sum(df[type_var] == type_v) for type_v in type_vals]
@@ -112,18 +112,20 @@ class Pjensen():
                 for val in range(n_vals):
                     counts_i[val] = np.sum(vals == val)
                 #counts_i = np.array([np.sum(vals == val) for val in type_vals])
-                idx = type_vals.index(val_i)
+                #idx = type_vals.index(val_i)
+                idx = val_i
                 ## Compute the correlation contribution
                 ###
                 self.logfile.write_log(m_debug3 % (time.time()-t2))
                 ###
                 counts_i[idx] -= 1
-                if counts_i[idx] == counts_i.sum():
+                tot = counts_i.sum()
+                if counts_i[idx] == tot:
                     corr_loc_i = np.zeros(n_vals)
-                    corr_loc_i[idx] = counts_i[idx]/counts_i.sum()
+                    corr_loc_i[idx] = counts_i[idx]/tot
                 else:
-                    corr_loc_i = counts_i/(counts_i.sum()-counts_i[idx])
-                    corr_loc_i[idx] = counts_i[idx]/counts_i.sum()
+                    corr_loc_i = counts_i/(tot-counts_i[idx])
+                    corr_loc_i[idx] = counts_i[idx]/tot
                 ## Aggregate to local correlation
                 corr_loc[idx, :, k] += corr_loc_i
             ## Finish to track this process
