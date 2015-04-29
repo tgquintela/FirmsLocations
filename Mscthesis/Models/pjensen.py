@@ -62,6 +62,8 @@ class Pjensen():
         # Values
         type_vals = list(df[type_var].unique())
         n_vals = len(type_vals)
+        repl = dict(zip(type_vals, range(n_vals)))
+        cnae_arr = np.array(df[type_var])
         # Global stats
         N_t = df.shape[0]
         N_x = [np.sum(df[type_var] == type_v) for type_v in type_vals]
@@ -96,16 +98,20 @@ class Pjensen():
                 ###
                 t2 = time.time()
                 ###
-                val_i = df.loc[reindices[i, k], type_var]
+                #val_i = df.loc[reindices[i, k], type_var]
+                val_i = cnae_arr[reindices[i, k]]
                 neighs_k = reindices[neighs, k]
-                vals = df.loc[neighs_k, type_var]
+                vals = cnae_arr[neighs_k]
+                #vals = df.loc[neighs_k, type_var]
                 ####
                 self.logfile.write_log(m_debug3 % (time.time()-t2))
                 t2 = time.time()
                 ####
                 ## Count the number of companies of each type
-                #counts_i = np.array([np.sum(vals == val) for val in type_vals])
                 counts_i = np.zeros(len(type_vals))
+                for val in range(n_vals):
+                    counts_i[val] = np.sum(vals == val)
+                #counts_i = np.array([np.sum(vals == val) for val in type_vals])
                 idx = type_vals.index(val_i)
                 ## Compute the correlation contribution
                 ###
