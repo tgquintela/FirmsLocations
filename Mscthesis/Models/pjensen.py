@@ -99,13 +99,16 @@ class Pjensen():
                 val_i = df.loc[reindices[i, k], type_var]
                 neighs_k = reindices[neighs, k]
                 vals = df.loc[neighs_k, type_var]
+                ####
+                self.logfile.write_log(m_debug3 % (time.time()-t2))
+                t2 = time.time()
+                ####
                 ## Count the number of companies of each type
                 counts_i = np.array([np.sum(vals == val) for val in type_vals])
                 idx = type_vals.index(val_i)
                 ## Compute the correlation contribution
                 ###
                 self.logfile.write_log(m_debug3 % (time.time()-t2))
-                t2 = time.time()
                 ###
                 counts_i[idx] -= 1
                 if counts_i[idx] == counts_i.sum():
@@ -117,7 +120,6 @@ class Pjensen():
                 ## Aggregate to local correlation
                 corr_loc[idx, :, k] += corr_loc_i
             ## Finish to track this process
-            self.logfile.write_log(m_debug3 % (time.time()-t2))
             self.logfile.write_log(m_debug2 % (time.time()-t1))
             if bool_inform and (i % self.lim_rows) == 0 and i != 0:
                 t_sp = time.time()-t0
