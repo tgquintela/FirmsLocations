@@ -29,6 +29,7 @@ Start computing neighs:
 message0a = "\n"
 message1 = "Computing and saving %s:"
 message2 = "completed in %f seconds.\n"
+mess2a = "File %s computed in %f seconds."
 message3 = "Total time expended computing net: %f seconds.\n"
 message_close = '----------------------------------------\n'
 message_close00 = '========================================\n'
@@ -43,11 +44,11 @@ class Compute_self_neighs():
     - Radius: float, list of floats, np.array, list of arrays (STR)
     - lim_rows: int, list of ints
     """
-    def __init__(self, dirnames, filenames, lim_rows, radius, logfile=None):
+    def __init__(self, dirnames, filenames, lim_rows, radius, logfile=None,
+                 lim_neighs=True):
         # Transformation to lists
         aux = homogenize_comp_neighs(filenames, radius, lim_rows, dirnames)
         filenames, radius, lim_rows, dirnames = aux
-        n_proc = len(filenames)
         # Creation of the directory
         for i in range(len(dirnames)):
             if not exists(dirnames[i]): makedirs(dirnames[i])
@@ -58,15 +59,18 @@ class Compute_self_neighs():
         self.radius = radius
         self.lim_rows = lim_rows
         self.filenames = filenames
-        self.i_r = 0
+        self.lim_neighs = lim_neighs
 
     def compute_neighs(self, df, loc_vars):
         """"""
         ## Check lists
         for i in range(len(self.radius)):
-            self.compute_neighs_r(df, loc_vars, i)
+            if self.lim_neighs:
+                self.compute_neighs_r_constant(df, loc_vars, i)
+            else:
+                self.compute_neighs_r_var(df, loc_vars, i)
 
-    def compute_neighs_r(self, df, loc_vars, i):
+    def compute_neighs_r_constant(self, df, loc_vars, i):
         """Computation of the neighborhood using an individual radius."""
         ## Start variables used
         r, dirname,  = self.radius[i], self.dirnames[i]
@@ -81,22 +85,109 @@ class Compute_self_neighs():
         max_len = len(str(indices[-1]))
         indices_sep = allocate_in_files(indices, lim_rows)
         col = ['neighs']
-        for i in range(len(indices_sep)):
+        for l in range(len(indices_sep)):
             ## Start tracking the process
             t0 = time.time()
-            num1, num2 = str(indices_sep[i][0]), str(indices_sep[i][-1])
+            num1, num2 = str(indices_sep[l][0]), str(indices_sep[l][-1])
             m = (max_len-len(num1))*'0'+num1+'-'+(max_len-len(num2))*'0'+num2
             self.logfile.write_log(message1 % m)
             ## Computation of the neighs
-            neighs = compute_self_neighs(df.loc[indices_sep[i], :],
+            neighs = compute_self_neighs(df.loc[indices_sep[l], :],
                                          loc_vars, r)
             neighs = [str(neighs[j])[1:-1] for j in range(len(neighs))]
-            neighs = pd.DataFrame(neighs, index=indices_sep[i], columns=col)
-            ## Save file % Non considered ((4-len(str(i)))*'0'+str(i))
+            neighs = pd.DataFrame(neighs, index=indices_sep[l], columns=col)
+            ## Save file % Non considered ((4-len(str(l)))*'0'+str(l))
             namefile = join(dirname, filename+'_'+m)
             neighs.to_csv(namefile, sep=';')
             ## Stop tracking process
             self.logfile.write_log(message2 % (time.time()-t0))
+        ## Stop tracking the process
+        self.logfile.write_log(message3 % (time.time()-t00))
+        self.logfile.write_log(message_close)
+
+    def compute_neighs_r_var(self, df, loc_vars, i):
+        """Computation of the neighborhood using an individual radius."""
+        ## 0. Start variables used
+        # From class
+        r, dirname,  = self.radius[i], self.dirnames[i]
+        filename, lim_rows = self.filenames[i], self.lim_rows[i]
+        # Indices related
+        indices = np.array(df.index)
+        max_len = len(str(indices[-1]))
+        # Object retrieve
+        kdtree = KDTree(df[loc_vars].as_matrix(), leafsize=10000)
+        # Initialization of variables
+        col = ['neighs']
+        N = df.shape[0]
+        count_neighs, t0, i_last = 0, time.time(), 0
+        ## Start tracking the process
+        t00 = time.time()
+        m1, m2 = 'Homogeneous R=%f km', 'Heterogeneous R'
+        m = m1 % r if type(r) == float else m2
+        self.logfile.write_log(message0 % m)
+        ## 1. Compute neighs
+        neighs = []
+        if type(radius) == str:
+            for i in range(N):
+                if count_neighs > self.lim_rows:
+                    # Save to file (TODO)
+                    neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
+                                          columns=col)
+                    num_code = auxiliar_name_creator(max_len, i_last, i)
+                    namefile = join(dirname, filename+'_'+num_code)
+                    neighs.to_csv(namefile, sep=';')
+                    # Reset process
+                    count_neighs, neighs, i_last = 0, [], i+1
+                    ## Stop tracking process
+                    self.logfile.write_log(mess2a % (num_code, time.time()-t0))
+                    t0 = time.time()
+                ## Computation of the neighs
+                point = df.loc[i, loc_vars].as_matrix()
+                r = df.loc[i, radius]/6371.009
+                local_n = kdtree.query_ball_point(point, r)
+                count_neighs += len(local_n)
+                neighs.append(str(local_n)[1_-1])
+        elif type(radius) == float:
+            r = radius/6371.009
+            for i in range(N):
+                if count_neighs > self.lim_rows:
+                    # Save to file (TODO)
+                    neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
+                                          columns=col)
+                    num_code = auxiliar_name_creator(max_len, i_last, i)
+                    namefile = join(dirname, filename+'_'+num_code)
+                    neighs.to_csv(namefile, sep=';')
+                    # Reset process
+                    count_neighs, neighs, i_last = 0, [], i+1
+                    ## Stop tracking process
+                    self.logfile.write_log(mess2a % (num_code, time.time()-t0))
+                    t0 = time.time()
+                ## Computation of the neighs
+                point = df.loc[i, loc_vars].as_matrix()
+                local_n = kdtree.query_ball_point(point, r)
+                count_neighs += len(local_n)
+                neighs.append(str(local_n)[1_-1])
+        elif type(radius) == np.ndarray:
+            for i in range(N):
+                if count_neighs > self.lim_rows:
+                    # Save to file (TODO)
+                    neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
+                                          columns=col)
+                    num_code = auxiliar_name_creator(max_len, i_last, i)
+                    namefile = join(dirname, filename+'_'+num_code)
+                    neighs.to_csv(namefile, sep=';')
+                    # Reset process
+                    count_neighs, neighs, i_last = 0, [], i+1
+                    ## Stop tracking process
+                    self.logfile.write_log(mess2a % (num_code, time.time()-t0))
+                    t0 = time.time()
+                ## Computation of the neighs
+                point = df.loc[i, loc_vars].as_matrix()
+                r = radius[i]/6371.009
+                local_n = kdtree.query_ball_point(point, r)
+                count_neighs += len(local_n)
+                neighs.append(str(local_n)[1_-1])
+
         ## Stop tracking the process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
@@ -196,3 +287,9 @@ def allocate_in_files(indices, lim_rows):
     if aux != []:
         indices_sep.append(indices[n_files*lim_rows:])
     return indices_sep
+
+
+def auxiliar_name_creator(max_len, num1, num2):
+    """Creation of a number."""
+    m = (max_len-len(num1))*'0'+num1+'-'+(max_len-len(num2))*'0'+num2
+    return m
