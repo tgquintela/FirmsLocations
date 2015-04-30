@@ -131,13 +131,13 @@ class Compute_self_neighs():
             for i in range(N):
                 if count_neighs > lim_rows:
                     # Save to file (TODO)
-                    neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
+                    neighs = pd.DataFrame(neighs, index=indices[i_last:i],
                                           columns=col)
-                    num_code = auxiliar_name_creator(max_len, i_last, i)
+                    num_code = auxiliar_name_creator(max_len, i_last, i-1)
                     namefile = join(dirname, filename+'_'+num_code)
                     neighs.to_csv(namefile, sep=';')
                     # Reset process
-                    count_neighs, neighs, i_last = 0, [], i+1
+                    count_neighs, neighs, i_last = 0, [], i
                     ## Stop tracking process
                     self.logfile.write_log(mess2a % (num_code, time.time()-t0))
                     t0 = time.time()
@@ -152,13 +152,13 @@ class Compute_self_neighs():
             for i in range(N):
                 if count_neighs > lim_rows:
                     # Save to file (TODO)
-                    neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
+                    neighs = pd.DataFrame(neighs, index=indices[i_last:i],
                                           columns=col)
-                    num_code = auxiliar_name_creator(max_len, i_last, i)
+                    num_code = auxiliar_name_creator(max_len, i_last, i-1)
                     namefile = join(dirname, filename+'_'+num_code)
                     neighs.to_csv(namefile, sep=';')
                     # Reset process
-                    count_neighs, neighs, i_last = 0, [], i+1
+                    count_neighs, neighs, i_last = 0, [], i
                     ## Stop tracking process
                     self.logfile.write_log(mess2a % (num_code, time.time()-t0))
                     t0 = time.time()
@@ -171,13 +171,13 @@ class Compute_self_neighs():
             for i in range(N):
                 if count_neighs > lim_rows:
                     # Save to file (TODO)
-                    neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
+                    neighs = pd.DataFrame(neighs, index=indices[i_last:i],
                                           columns=col)
-                    num_code = auxiliar_name_creator(max_len, i_last, i)
+                    num_code = auxiliar_name_creator(max_len, i_last, i-1)
                     namefile = join(dirname, filename+'_'+num_code)
                     neighs.to_csv(namefile, sep=';')
                     # Reset process
-                    count_neighs, neighs, i_last = 0, [], i+1
+                    count_neighs, neighs, i_last = 0, [], i
                     ## Stop tracking process
                     self.logfile.write_log(mess2a % (num_code, time.time()-t0))
                     t0 = time.time()
@@ -291,5 +291,6 @@ def allocate_in_files(indices, lim_rows):
 
 def auxiliar_name_creator(max_len, num1, num2):
     """Creation of a number."""
+    num1, num2 = str(num1), str(num2)
     m = (max_len-len(num1))*'0'+num1+'-'+(max_len-len(num2))*'0'+num2
     return m

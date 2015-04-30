@@ -25,7 +25,7 @@ from Mscthesis.Retrieve.cnae_utils import transform_cnae_col
 radius = .5
 type_var = 'cnae'
 loc_vars = ['ES-X', 'ES-Y']
-lim_rows = 1000
+lim_rows = 10000
 data = servicios[['cnae', 'ES-X', 'ES-Y']]
 del servicios
 
