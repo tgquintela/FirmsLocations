@@ -65,7 +65,7 @@ class Compute_self_neighs():
         """"""
         ## Check lists
         for i in range(len(self.radius)):
-            if self.lim_neighs:
+            if not self.lim_neighs:
                 self.compute_neighs_r_constant(df, loc_vars, i)
             else:
                 self.compute_neighs_r_var(df, loc_vars, i)
@@ -109,7 +109,7 @@ class Compute_self_neighs():
         """Computation of the neighborhood using an individual radius."""
         ## 0. Start variables used
         # From class
-        r, dirname,  = self.radius[i], self.dirnames[i]
+        radius, dirname,  = self.radius[i], self.dirnames[i]
         filename, lim_rows = self.filenames[i], self.lim_rows[i]
         # Indices related
         indices = np.array(df.index)
@@ -123,13 +123,13 @@ class Compute_self_neighs():
         ## Start tracking the process
         t00 = time.time()
         m1, m2 = 'Homogeneous R=%f km', 'Heterogeneous R'
-        m = m1 % r if type(r) == float else m2
+        m = m1 % radius if type(radius) == float else m2
         self.logfile.write_log(message0 % m)
         ## 1. Compute neighs
         neighs = []
         if type(radius) == str:
             for i in range(N):
-                if count_neighs > self.lim_rows:
+                if count_neighs > lim_rows:
                     # Save to file (TODO)
                     neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
                                           columns=col)
@@ -146,11 +146,11 @@ class Compute_self_neighs():
                 r = df.loc[i, radius]/6371.009
                 local_n = kdtree.query_ball_point(point, r)
                 count_neighs += len(local_n)
-                neighs.append(str(local_n)[1_-1])
+                neighs.append(str(local_n)[1:-1])
         elif type(radius) == float:
             r = radius/6371.009
             for i in range(N):
-                if count_neighs > self.lim_rows:
+                if count_neighs > lim_rows:
                     # Save to file (TODO)
                     neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
                                           columns=col)
@@ -166,10 +166,10 @@ class Compute_self_neighs():
                 point = df.loc[i, loc_vars].as_matrix()
                 local_n = kdtree.query_ball_point(point, r)
                 count_neighs += len(local_n)
-                neighs.append(str(local_n)[1_-1])
+                neighs.append(str(local_n)[1:-1])
         elif type(radius) == np.ndarray:
             for i in range(N):
-                if count_neighs > self.lim_rows:
+                if count_neighs > lim_rows:
                     # Save to file (TODO)
                     neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
                                           columns=col)
@@ -186,7 +186,7 @@ class Compute_self_neighs():
                 r = radius[i]/6371.009
                 local_n = kdtree.query_ball_point(point, r)
                 count_neighs += len(local_n)
-                neighs.append(str(local_n)[1_-1])
+                neighs.append(str(local_n)[1:-1])
 
         ## Stop tracking the process
         self.logfile.write_log(message3 % (time.time()-t00))
