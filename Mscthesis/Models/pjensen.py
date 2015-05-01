@@ -156,11 +156,11 @@ class Pjensen():
         sequential or in parallel.
         """
         if self.n_procs is not None:
-            corrs = computation_parallel(cnae_arr, reindices, i, neighs,
-                                         n_vals, self.n_procs)
+            corrs = compute_M_indexs_parallel(cnae_arr, reindices, i, neighs,
+                                              n_vals, self.n_procs)
         else:
-            corrs = computation_parallel(cnae_arr, reindices, i, neighs,
-                                         n_vals)
+            corrs = compute_M_indexs_sequential(cnae_arr, reindices, i, neighs,
+                                                n_vals)
         return corrs
 
     def build_random_nets(self, df, type_var, n):
@@ -178,6 +178,7 @@ class Pjensen():
 ###############################################################################
 ###############################################################################
 def compute_M_indexs_parallel(cnae_arr, reindices, i, neighs, n_vals, n_procs):
+    """Computation of the M index in parallel."""
     ## Loop over the possible reindices
     n_calc = reindices.shape[1]
     args = []
@@ -200,6 +201,7 @@ return corr_loc
 
 
 def compute_M_indexs_sequential(cnae_arr, reindices, i, neighs, n_vals):
+    """Computation of M index in sequential."""
     ## Loop over the possible reindices
     n_calc = reindices.shape[1]
     vals_i = np.zeros(n_calc)
