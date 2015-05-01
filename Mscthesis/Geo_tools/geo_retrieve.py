@@ -75,6 +75,7 @@ class Compute_self_neighs():
         ## Start variables used
         r, dirname,  = self.radius[i], self.dirnames[i]
         filename, lim_rows = self.filenames[i], self.lim_rows[i]
+        kdtree = KDTree(df[loc_vars].as_matrix(), leafsize=10000)
         ## Start tracking the process
         t00 = time.time()
         m1, m2 = 'Homogeneous R=%f km', 'Heterogeneous R'
@@ -93,11 +94,11 @@ class Compute_self_neighs():
             self.logfile.write_log(message1 % m)
             ## Computation of the neighs
             neighs = compute_self_neighs(df.loc[indices_sep[l], :],
-                                         loc_vars, r)
+                                         loc_vars, kdtree, r)
             neighs = [str(neighs[j])[1:-1] for j in range(len(neighs))]
             neighs = pd.DataFrame(neighs, index=indices_sep[l], columns=col)
             ## Save file % Non considered ((4-len(str(l)))*'0'+str(l))
-            namefile = join(dirname, filename+'_'+m)
+            namefile = join(dirname, filename+'_'+m.replace('-', '_'))
             neighs.to_csv(namefile, sep=';')
             ## Stop tracking process
             self.logfile.write_log(message2 % (time.time()-t0))
@@ -115,7 +116,12 @@ class Compute_self_neighs():
         indices = np.array(df.index)
         max_len = len(str(indices[-1]))
         # Object retrieve
-        kdtree = KDTree(df[loc_vars].as_matrix(), leafsize=10000)
+        locs = df[loc_vars].as_matrix()
+        kdtree = KDTree(locs, leafsize=10000)
+        if type(radius) == str:
+            radius = df.loc[:, radius]/6371.009
+        elif type(radius) == np.ndarray:
+            radius = radius/6371.009
         # Initialization of variables
         col = ['neighs']
         N = df.shape[0]
@@ -127,27 +133,7 @@ class Compute_self_neighs():
         self.logfile.write_log(message0 % m)
         ## 1. Compute neighs
         neighs = []
-        if type(radius) == str:
-            for i in range(N):
-                if count_neighs > lim_rows:
-                    # Save to file (TODO)
-                    neighs = pd.DataFrame(neighs, index=indices[i_last:i],
-                                          columns=col)
-                    num_code = auxiliar_name_creator(max_len, i_last, i-1)
-                    namefile = join(dirname, filename+'_'+num_code)
-                    neighs.to_csv(namefile, sep=';')
-                    # Reset process
-                    count_neighs, neighs, i_last = 0, [], i
-                    ## Stop tracking process
-                    self.logfile.write_log(mess2a % (num_code, time.time()-t0))
-                    t0 = time.time()
-                ## Computation of the neighs
-                point = df.loc[i, loc_vars].as_matrix()
-                r = df.loc[i, radius]/6371.009
-                local_n = kdtree.query_ball_point(point, r)
-                count_neighs += len(local_n)
-                neighs.append(str(local_n)[1:-1])
-        elif type(radius) == float:
+        if type(radius) == float:
             r = radius/6371.009
             for i in range(N):
                 if count_neighs > lim_rows:
@@ -155,7 +141,8 @@ class Compute_self_neighs():
                     neighs = pd.DataFrame(neighs, index=indices[i_last:i],
                                           columns=col)
                     num_code = auxiliar_name_creator(max_len, i_last, i-1)
-                    namefile = join(dirname, filename+'_'+num_code)
+                    num_code_name = num_code.replace('-','_')
+                    namefile = join(dirname, filename+'_'+num_code_name)
                     neighs.to_csv(namefile, sep=';')
                     # Reset process
                     count_neighs, neighs, i_last = 0, [], i
@@ -163,7 +150,7 @@ class Compute_self_neighs():
                     self.logfile.write_log(mess2a % (num_code, time.time()-t0))
                     t0 = time.time()
                 ## Computation of the neighs
-                point = df.loc[i, loc_vars].as_matrix()
+                point = locs[i, :]
                 local_n = kdtree.query_ball_point(point, r)
                 count_neighs += len(local_n)
                 neighs.append(str(local_n)[1:-1])
@@ -174,7 +161,8 @@ class Compute_self_neighs():
                     neighs = pd.DataFrame(neighs, index=indices[i_last:i],
                                           columns=col)
                     num_code = auxiliar_name_creator(max_len, i_last, i-1)
-                    namefile = join(dirname, filename+'_'+num_code)
+                    num_code_name = num_code.replace('-','_')
+                    namefile = join(dirname, filename+'_'+num_code_name)
                     neighs.to_csv(namefile, sep=';')
                     # Reset process
                     count_neighs, neighs, i_last = 0, [], i
@@ -182,11 +170,20 @@ class Compute_self_neighs():
                     self.logfile.write_log(mess2a % (num_code, time.time()-t0))
                     t0 = time.time()
                 ## Computation of the neighs
-                point = df.loc[i, loc_vars].as_matrix()
-                r = radius[i]/6371.009
+                point = locs[i, :]
+                r = radius[i]
                 local_n = kdtree.query_ball_point(point, r)
                 count_neighs += len(local_n)
                 neighs.append(str(local_n)[1:-1])
+        # Save to file (Last bunch)
+        neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
+                                columns=col)
+        num_code = auxiliar_name_creator(max_len, i_last, i)
+        namefile = join(dirname, filename+'_'+num_code)
+        neighs.to_csv(namefile, sep=';')
+        ## Stop tracking process
+        self.logfile.write_log(mess2a % (num_code, time.time()-t0))
+        t0 = time.time()
 
         ## Stop tracking the process
         self.logfile.write_log(message3 % (time.time()-t00))
@@ -195,29 +192,28 @@ class Compute_self_neighs():
 
 ########### Complete functions
 ##################################################################
-def compute_self_neighs(df, loc_vars, radius):
+def compute_self_neighs(df, loc_vars, locs, kdtree, radius):
     """
     radius: expressed in kms.
     """
     ## kdtree to retrieve neighbours
-    kdtree = KDTree(df[loc_vars].as_matrix(), leafsize=10000)
-    N = df.shape[0]
+    N = locs.shape[0]
 
     ## Set radius in which search neighbors
     neighs = []
-    if type(radius) == str:
-        for i in range(N):
-            point = df[loc_vars].as_matrix()[i]
-            r = df.loc[i, radius]/6371.009
-            neighs.append(kdtree.query_ball_point(point, r))
-    elif type(radius) == float:
+    #if type(radius) == str:
+    #    for i in range(N):
+    #        point = locs[i, :]
+    #        r = df.loc[i, radius]/6371.009
+    #        neighs.append(kdtree.query_ball_point(point, r))
+    if type(radius) == float:
         r = radius/6371.009
         for i in range(N):
-            point = df[loc_vars].as_matrix()[i]
+            point = locs[i, :]
             neighs.append(kdtree.query_ball_point(point, r))
     elif type(radius) == np.ndarray:
         for i in range(N):
-            point = df[loc_vars].as_matrix()[i]
+            point = locs[i, :]
             r = radius[i]/6371.009
             neighs.append(kdtree.query_ball_point(point, r))
 

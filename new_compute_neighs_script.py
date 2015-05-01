@@ -8,7 +8,7 @@ import pandas as pd
 
 #### PARSE DATA
 cleanedfilesdata = 'Data/clean_data/pruebadata'
-logfile = 'Data/Outputs/logfile.log'
+logfile = 'Data/Outputs/Logs/logfile.log'
 # Importing modules
 from Mscthesis.IO import Servicios_Parser
 from os.path import join
@@ -35,12 +35,12 @@ data['cnae'] = transform_cnae_col(data['cnae'], 2)
 #### Compute matrix
 from Mscthesis.Geo_tools.geo_retrieve import Compute_self_neighs
 
-radius = [0.2, 0.4]
+radius = [0.1, 0.25, 0.5, 0.75, 1., 1.5, 2., 5., 10.]
 type_var='cnae'
 basepathf = 'Data/Outputs/neighs/neighs_'
 pathfile = [basepathf+str(radius[i]).replace('.', '_') for i in range(len(radius))]
 filenames = ['neighs']*len(radius)
-lim_rows = [5000000, 5000000]
+lim_rows = [20000000]*len(radius)
 
 comp_neighs = Compute_self_neighs(pathfile, filenames, lim_rows, radius, logfile, lim_neighs=True)
 comp_neighs.compute_neighs(data, loc_vars)
