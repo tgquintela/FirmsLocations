@@ -47,7 +47,7 @@ import time
 import pandas as pd
 import os
 from os.path import join
-#folder = 'Data/Outputs/neighs/neighs_2_0'
+folder = 'Data/Outputs/neighs/neighs_2_0'
 
 #t0 = time.time()
 #data = pd.read_csv('/home/tono/mscthesis/code/Data/Outputs/neighs/neighs_0_5/neighs_0001', sep=';', index_col=0)
@@ -66,4 +66,20 @@ for f in files:
     n += data.shape[0]
 t = time.time()-t0
 print m % (t, str(n), t/n)
+
+
+### Retrieve from numpy vs pandas
+n, m, s = 1000000,10, 1000
+a = np.random.random((n, m))
+df = pd.DataFrame(a)
+idxs = np.random.randint(0, n, s)
+
+t0 = time.time()
+val1 = df.loc[idxs, :]
+print "Time expended is %f seconds." % (time.time()-t0)
+t0 = time.time()
+val1 = a[idxs, :]
+print "Time expended is %f seconds." % (time.time()-t0)
+
+
 
