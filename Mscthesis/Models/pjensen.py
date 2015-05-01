@@ -152,7 +152,9 @@ class Pjensen():
         return net, type_vals, N_x
 
     def local_jensen_corr(self, cnae_arr, reindices, i, neighs):
-
+        """Function wich acts as a switcher between computing M index in
+        sequential or in parallel.
+        """
         if self.n_procs is not None:
             corrs = computation_parallel(cnae_arr, reindices, i, neighs,
                                          n_vals, self.n_procs)
@@ -172,6 +174,9 @@ class Pjensen():
         return random_nets
 
 
+###############################################################################
+###############################################################################
+###############################################################################
 def compute_M_indexs_parallel(cnae_arr, reindices, i, neighs, n_vals, n_procs):
     ## Loop over the possible reindices
     n_calc = reindices.shape[1]

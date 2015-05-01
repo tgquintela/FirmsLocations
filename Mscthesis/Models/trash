@@ -101,3 +101,85 @@ def get_zetas(net, clusters):
         pos_values = [val for val in values if val >= 0]
         neg_values = [val for val in values if val >= 0]
     pass
+
+
+
+def local_jensen_corr_from_neighs(cnae_arr, neighs, type_vals, permuts):
+    """"""
+    ## Global variables
+    n_vals = len(type_vals)
+    indices = np.array(neighs.index)
+    corr_loc = np.zeros((n_vals, n_vals))
+    for j in xrange(indices.shape[0]):
+        ## Retrieve neighs from neighs dataframe
+        neighs_j = neighs.loc[indices[j], 'neighs'].split(',')
+        neighs_j = [int(e) for e in neighs_j]
+        vals = cnae_arr[neighs_j]
+        ## Count the number of companies of each type
+        counts_j = np.array([np.sum(vals == v) for v in range(len(type_vals))])
+        cnae_val = cnae_arr[indices[j]]
+        idx = cnae_val
+        ## Compute the correlation contribution
+        tot = counts_j.sum()
+        counts_j[idx] -= 1
+        if counts_j[idx] == tot:
+            corr_loc_j = np.zeros(n_vals)
+            corr_loc_j[idx] = counts_j[idx]/tot
+        else:
+            corr_loc_j = counts_j/(tot-counts_j[idx])
+            corr_loc_j[idx] = counts_j[idx]/tot
+        ## Aggregate to local correlation
+        corr_loc[idx, :] += corr_loc[idx, :]
+    return corr_loc
+
+
+def local_jensen_corr_from_neighs(cnae_arr, neighs, type_vals, reindices):
+    """"""
+    ## Global variables
+    n_vals = len(type_vals)
+    n_calc = reindices.shape[1]
+    indices = np.array(neighs.index)
+    corr_loc = np.zeros((n_vals, n_vals, n_calc))
+    for j in xrange(indices.shape[0]):
+        ## Retrieve neighs from neighs dataframe
+        neighs_j = neighs.loc[indices[j], 'neighs'].split(',')
+        neighs_j = [int(e) for e in neighs_j]
+        vals = cnae_arr[neighs_j]
+        ## Count the number of companies of each type
+        counts_j = np.array([np.sum(vals == v) for v in range(len(type_vals))])
+        cnae_val = cnae_arr[indices[j]]
+        idx = cnae_val
+        ## Compute the correlation contribution
+        tot = counts_j.sum()
+        counts_j[idx] -= 1
+        if counts_j[idx] == tot:
+            corr_loc_j = np.zeros(n_vals)
+            corr_loc_j[idx] = counts_j[idx]/tot
+        else:
+            corr_loc_j = counts_j/(tot-counts_j[idx])
+            corr_loc_j[idx] = counts_j[idx]/tot
+        ## Aggregate to local correlation
+        corr_loc[idx, :] += corr_loc[idx, :]
+    return corr_loc
+
+            for k in range(n_calc):
+                #val_i = df.loc[reindices[i, k], type_var]
+                val_i = cnae_arr[reindices[i, k]]
+                neighs_k = reindices[neighs, k]
+                vals = cnae_arr[neighs_k]
+                ## Count the number of companies of each type
+                nv = n_vals
+                c = [np.count_nonzero(np.equal(vals, v)) for v in range(nv)]
+                counts_i = np.array(c)
+                idx = val_i
+                ## Compute the correlation contribution
+                counts_i[idx] -= 1
+                tot = counts_i.sum()
+                if counts_i[idx] == tot:
+                    corr_loc_i = np.zeros(n_vals)
+                    corr_loc_i[idx] = counts_i[idx]/tot
+                else:
+                    corr_loc_i = counts_i/(tot-counts_i[idx])
+                    corr_loc_i[idx] = counts_i[idx]/tot
+                ## Aggregate to local correlation
+                corr_loc[idx, :, k] += corr_loc_i
