@@ -43,13 +43,15 @@ class Pjensen():
     Model of spatial correlation inference.
     """
 
-    def __init__(self, logfile=None, neighs_dir=None, lim_rows=None):
+    def __init__(self, logfile=None, neighs_dir=None, lim_rows=None,
+                 n_procs=None):
         self.logfile = Logger(logfile)
         if neighs_dir is not None:
             self.neighs_dir = neighs_dir
             neighs_files = os.listdir(neighs_dir)
             self.neighs_files = [join(neighs_dir, f) for f in neighs_files]
             self.lim_rows = lim_rows
+            self.n_procs = np_procs
 
     def built_nets(self, df, type_var, loc_vars, radius, permuts=None):
         """Main unction for building the network using M-index.
@@ -153,6 +155,36 @@ class Pjensen():
             random_nets[:, :, i] = self.built_network_from_neighs(df, type_var,
                                                                   reindex)
         return random_nets
+
+    def computation_parallel():
+        ## Loop over the possible reindices
+        for k in range(n_calc):
+            #val_i = df.loc[reindices[i, k], type_var]
+            val_i = cnae_arr[reindices[i, k]]
+            neighs_k = reindices[neighs, k]
+            vals = cnae_arr[neighs_k]
+
+            ## Computation of counts
+            computation_of_counts(vals, val_i, n_vals)
+            ## Aggregate to local correlation
+            corr_loc[idx, :, k] += corr_loc_i
+
+
+def computation_of_counts(vals, n_vals, idx):
+    """Individual function of computation of local counts."""
+    ## Count the number of companies of each type
+    counts_i = [np.count_nonzero(np.equal(vals, v)) for v in range(n_vals)]
+    counts_i = np.array(counts_i)
+    ## Compute the correlation contribution
+    counts_i[idx] -= 1
+    tot = counts_i.sum()
+    if counts_i[idx] == tot:
+        corr_loc_i = np.zeros(n_vals)
+        corr_loc_i[idx] = counts_i[idx]/tot
+    else:
+        corr_loc_i = counts_i/(tot-counts_i[idx])
+        corr_loc_i[idx] = counts_i[idx]/tot
+    return corr_loc_i
 
 
 ###############################################################################
