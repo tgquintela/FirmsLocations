@@ -146,7 +146,10 @@ class Pjensen():
             self.logfile.write_log(message2 % (time.time()-t0))
         ## 2. Building a net
         C = global_constants_jensen(n_vals, N_t, N_x)
-        net = np.log10(np.multiply(C, corr_loc))
+        # Computing the nets
+        net = np.zeros((n_vals, n_vals, n_calc))
+        for i in range(n_calc):
+            net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
         ## Closing process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
