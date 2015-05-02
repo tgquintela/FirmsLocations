@@ -9,6 +9,7 @@ import pandas as pd
 #import networkx as nx
 from scipy.spatial import KDTree
 
+import multiprocessing as mp
 import time
 import os
 from os.path import join
@@ -138,20 +139,23 @@ class Pjensen():
                 ## Retrieve neighs from neighs dataframe
                 neighs_j = neighs.loc[indices[j], 'neighs'].split(',')
                 neighs_j = [int(e) for e in neighs_j]
-                corr_loc_f = local_jensen_corr(cnae_arr, reindices, i,
-                                               neighs_j)
+                corr_loc_f = self.local_jensen_corr(cnae_arr, reindices, j,
+                                                    neighs_j, n_vals)
             corr_loc += corr_loc_f
             ## Finish to track this process
             self.logfile.write_log(message2 % (time.time()-t0))
         ## 2. Building a net
         C = global_constants_jensen(n_vals, N_t, N_x)
-        net = np.log10(np.multiply(C, corr_loc))
+        # Computing the nets
+        net = np.zeros((n_vals, n_vals, n_calc))
+        for i in range(n_calc):
+            net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
         ## Closing process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
         return net, type_vals, N_x
 
-    def local_jensen_corr(self, cnae_arr, reindices, i, neighs):
+    def local_jensen_corr(self, cnae_arr, reindices, i, neighs, n_vals):
         """Function wich acts as a switcher between computing M index in
         sequential or in parallel.
         """
@@ -197,7 +201,7 @@ def compute_M_indexs_parallel(cnae_arr, reindices, i, neighs, n_vals, n_procs):
     ## Aggregate to local correlation
     for k in range(n_calc):
         corr_loc[vals_i[k], :, k] += corrs[k]
-return corr_loc
+    return corr_loc
 
 
 def compute_M_indexs_sequential(cnae_arr, reindices, i, neighs, n_vals):
@@ -214,7 +218,7 @@ def compute_M_indexs_sequential(cnae_arr, reindices, i, neighs, n_vals):
         corr = computation_of_counts([vals, val_i, n_vals])
         ## Aggregate to local correlation
         corr_loc[val_i, :, k] += corr
-return corr_loc
+    return corr_loc
 
 
 def computation_of_counts(args):
@@ -252,11 +256,16 @@ def preparing_net_computation(df, type_var, lim_rows, permuts):
     N_x = np.array(N_x)
     # Preparing reindices
     reindex = np.array(df.index)
-    reindex = reindex.reshape((reindex.shape[0], 1))
+    reindex = reindex.reshape((N_t, 1))
     if permuts is not None:
+        if type(permuts) == int:
+            permuts = [np.random.permutation(N_t) for i in range(permuts)]
+            permuts = np.vstack(permuts).T
+            bool_ch = len(permuts.shape) == 1
+            permuts = permuts.reshape((N_t, 1)) if bool_ch else permuts
         n_per = permuts.shape[1]
         permuts = [reindex[permuts[:, i]] for i in range(n_per)]
-        permuts = np.array(permuts).T
+        permuts = np.hstack(permuts)
     reindex = [reindex] if permuts is None else [reindex, permuts]
     reindices = np.hstack(reindex)
     n_calc = reindices.shape[1]
