@@ -8,7 +8,7 @@ import pandas as pd
 
 #### PARSE DATA
 cleanedfilesdata = 'Data/clean_data/pruebadata'
-logfile = 'Data/Outputs/logfile.log'
+logfile = 'Data/Outputs/Logs/logfile_2015_05_03.log'
 # Importing modules
 from Mscthesis.IO import Servicios_Parser
 from os.path import join
@@ -25,7 +25,7 @@ from Mscthesis.Retrieve.cnae_utils import transform_cnae_col
 radius = .5
 type_var = 'cnae'
 loc_vars = ['ES-X', 'ES-Y']
-lim_rows = 10000
+lim_rows = 100000
 data = servicios[['cnae', 'ES-X', 'ES-Y']]
 del servicios
 
@@ -36,15 +36,12 @@ data = transf4compdist_global_homo(data, loc_vars)
 
 ### Test for a given distance
 from Mscthesis.Models.pjensen import Pjensen
-neighs_dir = 'Data/Outputs/neighs/neighs_0_5'
+neighs_dir = 'Data/Outputs/neighs/neighs_0_1'
 
-pjensen = Pjensen(logfile, neighs_dir, lim_rows)
-net, type_vals, N_x = pjensen.built_nets(data, type_var, loc_vars, radius)
-
+pjensen = Pjensen(logfile, neighs_dir, lim_rows, n_procs=None)
+C, net, type_vals, N_x = pjensen.built_nets(data, type_var, loc_vars, radius, permuts=None)
+#Cnet, type_vals, N_x = pjensen.built_network_from_neighs(data, type_var, permuts=20)
 
 m = "Spent %f seconds for %s rows. Ratio = %f seconds/row"
-
-
-
 
 

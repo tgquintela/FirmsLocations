@@ -83,3 +83,42 @@ print "Time expended is %f seconds." % (time.time()-t0)
 
 
 
+### Retrieve numpy with list and with array
+import numpy as np
+import time
+from collections import Counter
+
+def f1(a, m):
+    count = np.zeros(m)
+    c = Counter(a)
+    count[c.keys()] = c.values()
+    return c
+def f2(a, m):
+    return np.array([np.count_nonzero(np.equal(a, v)) for v in range(m)])
+def f3(a, m):
+    count = np.zeros(m)
+    for i in xrange(a.shape[0]):
+        count[a[i]] += 1
+    return count
+
+mess = "Time expended in method %s is %f seconds."
+#### parameters
+m = 100
+n = 100000
+### Needed vars
+a = np.random.randint(0, m, n)
+
+
+t0 = time.time()
+res1 = f1(a, m)
+print mess % ("f1", time.time()-t0)
+t0 = time.time()
+res2 = f2(a, m)
+print mess % ("f2", time.time()-t0)
+t0 = time.time()
+res3 = f3(a, m)
+print mess % ("f3", time.time()-t0)
+
+
+
+

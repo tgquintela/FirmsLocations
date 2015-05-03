@@ -35,6 +35,7 @@ message_close = '----------------------------------------\n'
 m_debug1 = "Retrieving neighs in %f seconds."
 m_debug2 = "Computing M-index in %f seconds."
 m_debug3 = "%f"
+m_debug4 = "Computing M-index for k=%s in %f seconds."
 
 
 ########### Class for computing
@@ -56,6 +57,7 @@ class Pjensen():
 
     def built_nets(self, df, type_var, loc_vars, radius, permuts=None):
         """Main unction for building the network using M-index.
+        TODO: Support to arrays in radius.
         """
         ## 0. Setting needed variables
         self.logfile.write_log(message0 % self.neighs_dir)
@@ -67,6 +69,9 @@ class Pjensen():
         # KDTree retrieve object instantiation
         locs = df[loc_vars].as_matrix()
         kdtree = KDTree(locs, leafsize=10000)
+        radius = radius/6371.009
+        if type(radius) == float:
+            r = radius
 
         ## 1. Computation of the local spatial correlation with M-index
         corr_loc = np.zeros((n_vals, n_vals, n_calc))
@@ -74,15 +79,18 @@ class Pjensen():
         ## Begin to track the process
         t0 = time.time()
         for i in xrange(N_t):
+            # Check radius
+            if type(radius) == np.ndarray:
+                r = radius[i]
             ## Obtaining neighs of a given point
             point_i = locs[indices[i], :]
-            neighs = kdtree.query_ball_point(point_i, radius)
+            neighs = kdtree.query_ball_point(point_i, r)
             ## Loop over the possible reindices
             for k in range(n_calc):
                 #val_i = df.loc[reindices[i, k], type_var]
                 val_i = cnae_arr[reindices[i, k]]
                 neighs_k = reindices[neighs, k]
-                vals = cnae_arr[neighs_k]
+                vals = cnae_arr[neighs_k] 
                 ## Count the number of companies of each type
                 nv = n_vals
                 c = [np.count_nonzero(np.equal(vals, v)) for v in range(nv)]
@@ -113,7 +121,7 @@ class Pjensen():
         ## Closing process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
-        return net, type_vals, N_x
+        return C, corr_loc, type_vals, N_x
 
     def built_network_from_neighs(self, df, type_var, permuts=None):
         """Main function to perform spatial correlation computation."""
