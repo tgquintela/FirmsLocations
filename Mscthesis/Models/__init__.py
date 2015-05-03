@@ -5,7 +5,7 @@ Supermodule Models.
 """
 
 from model_utils import filter_with_random_nets
-from Mscthesis.IO.model_report import model_report
+from Mscthesis.IO.model_report import create_model_report
 
 
 class Model():
@@ -18,6 +18,5 @@ class Model():
 
     def to_report(self, net, sectors, dirname, reportname):
         "Generate a folder in which save the report data exported."
-        fig1, fig2 = model_report(net, sectors, dirname, reportname)
+        fig1, fig2 = create_model_report(net, sectors, dirname, reportname)
         return fig1, fig2
-
