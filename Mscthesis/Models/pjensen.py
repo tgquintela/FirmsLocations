@@ -120,7 +120,7 @@ class Pjensen(Model):
         ## Closing process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
-        return C, corr_loc, counts, type_vals, N_x
+        return net, counts, type_vals, N_x
 
     def built_network_from_neighs(self, df, type_var, permuts=None):
         """Main function to perform spatial correlation computation."""
@@ -169,7 +169,7 @@ class Pjensen(Model):
         ## Closing process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
-        return C, corr_loc, counts, type_vals, N_x
+        return net, counts, type_vals, N_x
 
     def local_jensen_corr(self, cnae_arr, reindices, i, neighs, n_vals):
         """Function wich acts as a switcher between computing M index in
