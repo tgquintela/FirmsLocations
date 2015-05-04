@@ -8,7 +8,7 @@ import pandas as pd
 
 #### PARSE DATA
 cleanedfilesdata = 'Data/clean_data/pruebadata'
-logfile = 'Data/Outputs/Logs/logfile_2015_05_03.log'
+logfile = 'Data/Outputs/Logs/logfile_2015_05_04.log'
 # Importing modules
 from Mscthesis.IO import Servicios_Parser
 from os.path import join
@@ -39,8 +39,9 @@ from Mscthesis.Models.pjensen import Pjensen
 neighs_dir = 'Data/Outputs/neighs/neighs_0_1'
 
 pjensen = Pjensen(logfile, neighs_dir, lim_rows, n_procs=None)
-C, net, type_vals, N_x = pjensen.built_nets(data, type_var, loc_vars, radius, permuts=None)
-#Cnet, type_vals, N_x = pjensen.built_network_from_neighs(data, type_var, permuts=20)
+#C, net, counts, type_vals, N_x = pjensen.built_nets(data, type_var, loc_vars, radius, permuts=None)
+#net, counts, type_vals, N_x = pjensen.built_network_from_neighs(data, type_var, permuts=None)
+C, corrs, counts, type_vals, N_x = pjensen.built_network_from_neighs(data, type_var, permuts=None)
 
 m = "Spent %f seconds for %s rows. Ratio = %f seconds/row"
 
