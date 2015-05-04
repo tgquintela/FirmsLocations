@@ -6,6 +6,8 @@ Supermodule Models.
 
 from model_utils import filter_with_random_nets
 from Mscthesis.IO.model_report import create_model_report
+import networkx as nx
+from os.path import join
 
 
 class Model():
@@ -20,3 +22,8 @@ class Model():
         "Generate a folder in which save the report data exported."
         fig1, fig2 = create_model_report(net, sectors, dirname, reportname)
         return fig1, fig2
+
+    def to_pajeck(net, sectors, netfiledata, filenamenet):
+        net_out = nx.from_numpy_matrix(net)
+        net_out = nx.relabel_nodes(net_out, dict(zip(range(len(sectors)), sectors)))
+        nx.write_pajeck(net_out, join(netfiledata, filenamenet))

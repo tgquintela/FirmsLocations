@@ -154,8 +154,6 @@ class Pjensen(Model):
                                                               neighs_j, n_vals)
                 corr_loc_f += corr_loc_j
                 counts_f += counts_j
-            print counts_f.sum()
-            print corr_loc_f.mean()
             corr_loc += corr_loc_f
             counts += counts_f
             ## Finish to track this process
