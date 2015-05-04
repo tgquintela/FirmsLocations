@@ -15,7 +15,7 @@ import os
 from os.path import join
 
 from Mscthesis.IO.write_log import Logger
-from model_utils import filter_with_random_nets
+from Mscthesis.Models import Model
 
 
 ########### Global variables needed
@@ -40,7 +40,7 @@ m_debug4 = "Computing M-index for k=%s in %f seconds."
 
 ########### Class for computing
 ##################################################################
-class Pjensen():
+class Pjensen(Model):
     """
     Model of spatial correlation inference.
     """
@@ -143,14 +143,19 @@ class Pjensen():
             neighs = pd.read_csv(f, sep=';', index_col=0)
             ## Compute corr with these neighs
             indices = np.array(neighs.index)
+            corr_loc_f = np.zeros((n_vals, n_vals, n_calc))
+            counts_f = np.zeros((n_vals, n_vals, n_calc))
             for j in xrange(indices.shape[0]):
                 ## Retrieve neighs from neighs dataframe
                 neighs_j = neighs.loc[indices[j], 'neighs'].split(',')
                 neighs_j = [int(e) for e in neighs_j]
-                corr_loc_f, counts_f = self.local_jensen_corr(cnae_arr,
+                corr_loc_j, counts_j = self.local_jensen_corr(cnae_arr,
                                                               reindices, j,
                                                               neighs_j, n_vals)
-                print counts_f.sum()
+                corr_loc_f += corr_loc_j
+                counts_f += counts_j
+            print counts_f.sum()
+            print corr_loc_f.mean()
             corr_loc += corr_loc_f
             counts += counts_f
             ## Finish to track this process
@@ -174,11 +179,11 @@ class Pjensen():
         """
         if self.n_procs is not None:
             corrs, count = compute_M_indexs_parallel(cnae_arr, reindices, i,
-                                                      neighs, n_vals,
-                                                      self.n_procs)
+                                                     neighs, n_vals,
+                                                     self.n_procs)
         else:
             corrs, count = compute_M_indexs_sequential(cnae_arr, reindices, i,
-                                                        neighs, n_vals)
+                                                       neighs, n_vals)
         return corrs, count
 
     def build_random_nets(self, df, type_var, n):
@@ -297,9 +302,6 @@ def quality_measure_w_search(kdtree, points, cnae_arr, cnae_p, radius):
         ## Retrieve val
         val_i = cnae_p[i]
         vals = cnae_arr[neighs]
-
-
-
 
 
 ###############################################################################
