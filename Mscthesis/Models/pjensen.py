@@ -77,6 +77,7 @@ class Pjensen():
 
         ## 1. Computation of the local spatial correlation with M-index
         corr_loc = np.zeros((n_vals, n_vals, n_calc))
+        counts = np.zeros((n_vals, n_vals, n_calc))
         indices = np.array(df.index)
         ## Begin to track the process
         t0 = time.time()
@@ -85,9 +86,6 @@ class Pjensen():
             if type(radius) == np.ndarray:
                 r = radius[i]
             ## Obtaining neighs of a given point
-            ######
-            t1 = time.time()
-            ######
             point_i = locs[indices[i], :]
             neighs = kdtree.query_ball_point(point_i, r)
             ## Loop over the possible reindices
@@ -95,11 +93,13 @@ class Pjensen():
                 #val_i = df.loc[reindices[i, k], type_var]
                 val_i = cnae_arr[reindices[i, k]]
                 neighs_k = reindices[neighs, k]
-                vals = cnae_arr[neighs_k] 
+                vals = cnae_arr[neighs_k]
                 ## Count the number of companies of each type
-                corr_loc_i = computation_of_counts([vals, val_i, n_vals])
+                corr_loc_i, counts_i = computation_of_counts([vals, val_i,
+                                                              n_vals])
                 ## Aggregate to local correlation
                 corr_loc[val_i, :, k] += corr_loc_i
+                counts[val_i, :, k] += counts_i
             ## Finish to track this process
             if bool_inform and (i % self.lim_rows) == 0 and i != 0:
                 t_sp = time.time()-t0
@@ -111,10 +111,12 @@ class Pjensen():
         net = np.zeros((n_vals, n_vals, n_calc))
         for i in range(n_calc):
             net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
+        # Averaging counts
+        counts = counts/float(N_t)
         ## Closing process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
-        return C, corr_loc, type_vals, N_x
+        return C, corr_loc, counts, type_vals, N_x
 
     def built_network_from_neighs(self, df, type_var, permuts=None):
         """Main function to perform spatial correlation computation."""
@@ -128,6 +130,7 @@ class Pjensen():
 
         ## 1. Computation of local spatial correlations
         corr_loc = np.zeros((n_vals, n_vals, n_calc))
+        counts = np.zeros((n_vals, n_vals, n_calc))
         for f in self.neighs_files:
             ## Begin to track the process
             self.logfile.write_log(message1 % (f.split('/')[-1]))
@@ -140,9 +143,11 @@ class Pjensen():
                 ## Retrieve neighs from neighs dataframe
                 neighs_j = neighs.loc[indices[j], 'neighs'].split(',')
                 neighs_j = [int(e) for e in neighs_j]
-                corr_loc_f = self.local_jensen_corr(cnae_arr, reindices, j,
-                                                    neighs_j, n_vals)
+                corr_loc_f, counts_f = self.local_jensen_corr(cnae_arr,
+                                                              reindices, j,
+                                                              neighs_j, n_vals)
             corr_loc += corr_loc_f
+            counts += counts_f
             ## Finish to track this process
             self.logfile.write_log(message2 % (time.time()-t0))
         ## 2. Building a net
@@ -151,22 +156,25 @@ class Pjensen():
         net = np.zeros((n_vals, n_vals, n_calc))
         for i in range(n_calc):
             net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
+        # Averaging counts
+        counts = counts/float(N_t)
         ## Closing process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
-        return net, type_vals, N_x
+        return net, counts, type_vals, N_x
 
     def local_jensen_corr(self, cnae_arr, reindices, i, neighs, n_vals):
         """Function wich acts as a switcher between computing M index in
         sequential or in parallel.
         """
         if self.n_procs is not None:
-            corrs = compute_M_indexs_parallel(cnae_arr, reindices, i, neighs,
-                                              n_vals, self.n_procs)
+            corrs, counts = compute_M_indexs_parallel(cnae_arr, reindices, i,
+                                                      neighs, n_vals,
+                                                      self.n_procs)
         else:
-            corrs = compute_M_indexs_sequential(cnae_arr, reindices, i, neighs,
-                                                n_vals)
-        return corrs
+            corrs, counts = compute_M_indexs_sequential(cnae_arr, reindices, i,
+                                                        neighs, n_vals)
+        return corrs, counts
 
     def build_random_nets(self, df, type_var, n):
         """Montecarlo creation of random nets by permutation."""
@@ -199,27 +207,31 @@ def compute_M_indexs_parallel(cnae_arr, reindices, i, neighs, n_vals, n_procs):
     pool = mp.Pool(n_procs)
     corrs = pool.map(computation_of_counts, args)
     corr_loc = np.zeros((n_vals, n_vals, n_calc))
+    counts_i = np.zeros((n_vals, n_vals, n_calc))
     ## Aggregate to local correlation
     for k in range(n_calc):
-        corr_loc[vals_i[k], :, k] += corrs[k]
-    return corr_loc
+        corr_loc[vals_i[k], :, k] += corrs[k][0]
+        counts_i[vals_i[k], :, k] += corrs[k][1]
+    return corr_loc, counts_i
 
 
 def compute_M_indexs_sequential(cnae_arr, reindices, i, neighs, n_vals):
     """Computation of M index in sequential."""
     ## Loop over the possible reindices
     n_calc = reindices.shape[1]
-    vals_i = np.zeros(n_calc)
+    #vals_i = np.zeros(n_calc)
     corr_loc = np.zeros((n_vals, n_vals, n_calc))
+    counts_i = np.zeros((n_vals, n_vals, n_calc))
     for k in range(n_calc):
         val_i = cnae_arr[reindices[i, k]]
         neighs_k = reindices[neighs, k]
         vals = cnae_arr[neighs_k]
         ## Computation of counts
-        corr = computation_of_counts([vals, val_i, n_vals])
+        corr, counts = computation_of_counts([vals, val_i, n_vals])
         ## Aggregate to local correlation
         corr_loc[val_i, :, k] += corr
-    return corr_loc
+        counts_i[val_i, :, k] += counts
+    return corr_loc, counts_i
 
 
 def computation_of_counts(args):
@@ -237,7 +249,8 @@ def computation_of_counts(args):
     else:
         corr_loc_i = counts_i/float(tot-counts_i[idx])
         corr_loc_i[idx] = counts_i[idx]/float(tot)
-    return corr_loc_i
+    corr_loc_i[np.isnan(corr_loc_i)] = 0.
+    return corr_loc_i, counts_i
 
 
 ###############################################################################

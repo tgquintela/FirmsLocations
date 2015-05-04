@@ -112,6 +112,11 @@ nx.write_pajeck(net_out, join(netfiledata, filenamenet)
 
 
 
+quality = np.dot(a[val_i, :], (counts_i - average_counts[val_i, :]))
+
+
+
+
 #n_x, n_y = 1000, 1000
 #n_levs = 10
 #loc_vars = ['ES-X', 'ES-Y']
