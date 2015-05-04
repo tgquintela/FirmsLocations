@@ -281,6 +281,7 @@ def compute_loc_M_index(counts_i, idx, n_vals):
         corr_loc_i[idx] = counts_i[idx]/float(tot)
     # Avoid nan values
     corr_loc_i[np.isnan(corr_loc_i)] = 0.
+    corr_loc_i[corr_loc_i < 0] = 0.
     return corr_loc_i
 
 
