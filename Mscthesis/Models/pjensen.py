@@ -107,10 +107,14 @@ class Pjensen():
                 t0 = time.time()
         ## 2. Building a net
         C = global_constants_jensen(n_vals, N_t, N_x)
+        corr_loc[corr_loc < 0] = 0
         # Computing the nets
         net = np.zeros((n_vals, n_vals, n_calc))
         for i in range(n_calc):
-            net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
+            net_aux = np.log10(np.multiply(C, corr_loc[:, :, i]))
+            idx_null = np.logical_and(C == 0, corr_loc[:, :, i] == 0)
+            net_aux[idx_null] = 0.
+            net[:, :, i] = net_aux
         # Averaging counts
         counts = counts/float(N_t)
         ## Closing process
@@ -146,6 +150,7 @@ class Pjensen():
                 corr_loc_f, counts_f = self.local_jensen_corr(cnae_arr,
                                                               reindices, j,
                                                               neighs_j, n_vals)
+                print counts_f.sum()
             corr_loc += corr_loc_f
             counts += counts_f
             ## Finish to track this process
@@ -168,13 +173,13 @@ class Pjensen():
         sequential or in parallel.
         """
         if self.n_procs is not None:
-            corrs, counts = compute_M_indexs_parallel(cnae_arr, reindices, i,
+            corrs, count = compute_M_indexs_parallel(cnae_arr, reindices, i,
                                                       neighs, n_vals,
                                                       self.n_procs)
         else:
-            corrs, counts = compute_M_indexs_sequential(cnae_arr, reindices, i,
+            corrs, count = compute_M_indexs_sequential(cnae_arr, reindices, i,
                                                         neighs, n_vals)
-        return corrs, counts
+        return corrs, count
 
     def build_random_nets(self, df, type_var, n):
         """Montecarlo creation of random nets by permutation."""
@@ -271,10 +276,6 @@ def compute_loc_M_index(counts_i, idx, n_vals):
         corr_loc_i[idx] = counts_i[idx]/float(tot)
     # Avoid nan values
     corr_loc_i[np.isnan(corr_loc_i)] = 0.
-    #### debug
-    if np.any(corr_loc_i) < 0:
-        print corr_loc_i
-    ##########
     return corr_loc_i
 
 
@@ -352,6 +353,7 @@ def global_constants_jensen(n_vals, N_t, N_x):
                     C[i, j] = 0.
                 else:
                     C[i, j] = (N_t-N_x[i])/float(N_x[i]*N_x[j])
+    C[C < 0] = 0
     return C
 
 
