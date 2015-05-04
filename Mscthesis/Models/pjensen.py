@@ -107,14 +107,12 @@ class Pjensen(Model):
                 t0 = time.time()
         ## 2. Building a net
         C = global_constants_jensen(n_vals, N_t, N_x)
-        corr_loc[corr_loc < 0] = 0
         # Computing the nets
         net = np.zeros((n_vals, n_vals, n_calc))
         for i in range(n_calc):
-            net_aux = np.log10(np.multiply(C, corr_loc[:, :, i]))
-            idx_null = np.logical_and(C == 0, corr_loc[:, :, i] == 0)
-            net_aux[idx_null] = 0.
-            net[:, :, i] = net_aux
+            idx_null = np.logical_or(C == 0, corr_loc[:, :, i] == 0)
+            net = np.log10(np.multiply(C, corr_loc[:, :, i]))
+            net[idx_null] = 0.
         # Averaging counts
         counts = counts/float(N_t)
         ## Closing process
@@ -163,7 +161,9 @@ class Pjensen(Model):
         # Computing the nets
         net = np.zeros((n_vals, n_vals, n_calc))
         for i in range(n_calc):
-            net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
+            idx_null = np.logical_or(C == 0, corr_loc[:, :, i] == 0)
+            net = np.log10(np.multiply(C, corr_loc[:, :, i]))
+            net[idx_null] = 0.
         # Averaging counts
         counts = counts/float(N_t)
         ## Closing process
