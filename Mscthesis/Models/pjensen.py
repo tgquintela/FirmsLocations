@@ -251,7 +251,6 @@ def computation_of_counts(args):
 
 def count_in_neighborhood(vals, n_vals):
     "Counting neighbours in the neighbourhood."
-    vals, n_vals = tuple(args)
     counts_i = [np.count_nonzero(np.equal(vals, v)) for v in range(n_vals)]
     counts_i = np.array(counts_i)
     return counts_i
@@ -263,7 +262,7 @@ def compute_loc_M_index(counts_i, idx, n_vals):
     counts_i[idx] -= 1
     tot = counts_i.sum()
     if tot == 0:
-        corr_loc_i[:] = 0.
+        corr_loc_i = np.zeros(n_vals)
     elif counts_i[idx] == tot:
         corr_loc_i = np.zeros(n_vals)
         corr_loc_i[idx] = counts_i[idx]/float(tot)
@@ -282,7 +281,7 @@ def compute_loc_M_index(counts_i, idx, n_vals):
 ###############################################################################
 ############################### Quality measure ###############################
 ###############################################################################
-def quality_measure_w_search(kdtree, points, cnae_arr, radius):
+def quality_measure_w_search(kdtree, points, cnae_arr, cnae_p, radius):
     ""
 
     if type(radius) == np.ndarray:
@@ -294,6 +293,12 @@ def quality_measure_w_search(kdtree, points, cnae_arr, radius):
         ## Obtaining neighs of a given point
         point_i = points[i, :]
         neighs = kdtree.query_ball_point(point_i, r)
+        ## Retrieve val
+        val_i = cnae_p[i]
+        vals = cnae_arr[neighs]
+
+
+
 
 
 ###############################################################################
