@@ -5,7 +5,7 @@ Supermodule Models.
 """
 
 from model_utils import filter_with_random_nets
-from Mscthesis.IO.model_report import model_report
+from Mscthesis.IO.model_report import create_model_report
 
 
 class Model():

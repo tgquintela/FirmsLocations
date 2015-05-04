@@ -72,6 +72,8 @@ class Pjensen():
         radius = radius/6371.009
         if type(radius) == float:
             r = radius
+        elif type(radius) == str:
+            radius = np.array(df[radius])
 
         ## 1. Computation of the local spatial correlation with M-index
         corr_loc = np.zeros((n_vals, n_vals, n_calc))
@@ -83,6 +85,9 @@ class Pjensen():
             if type(radius) == np.ndarray:
                 r = radius[i]
             ## Obtaining neighs of a given point
+            ######
+            t1 = time.time()
+            ######
             point_i = locs[indices[i], :]
             neighs = kdtree.query_ball_point(point_i, r)
             ## Loop over the possible reindices
@@ -92,21 +97,9 @@ class Pjensen():
                 neighs_k = reindices[neighs, k]
                 vals = cnae_arr[neighs_k] 
                 ## Count the number of companies of each type
-                nv = n_vals
-                c = [np.count_nonzero(np.equal(vals, v)) for v in range(nv)]
-                counts_i = np.array(c)
-                idx = val_i
-                ## Compute the correlation contribution
-                counts_i[idx] -= 1
-                tot = counts_i.sum()
-                if counts_i[idx] == tot:
-                    corr_loc_i = np.zeros(n_vals)
-                    corr_loc_i[idx] = counts_i[idx]/tot
-                else:
-                    corr_loc_i = counts_i/(tot-counts_i[idx])
-                    corr_loc_i[idx] = counts_i[idx]/tot
+                corr_loc_i = computation_of_counts([vals, val_i, n_vals])
                 ## Aggregate to local correlation
-                corr_loc[idx, :, k] += corr_loc_i
+                corr_loc[val_i, :, k] += corr_loc_i
             ## Finish to track this process
             if bool_inform and (i % self.lim_rows) == 0 and i != 0:
                 t_sp = time.time()-t0
@@ -240,10 +233,10 @@ def computation_of_counts(args):
     tot = counts_i.sum()
     if counts_i[idx] == tot:
         corr_loc_i = np.zeros(n_vals)
-        corr_loc_i[idx] = counts_i[idx]/tot
+        corr_loc_i[idx] = counts_i[idx]/float(tot)
     else:
-        corr_loc_i = counts_i/(tot-counts_i[idx])
-        corr_loc_i[idx] = counts_i[idx]/tot
+        corr_loc_i = counts_i/float(tot-counts_i[idx])
+        corr_loc_i[idx] = counts_i[idx]/float(tot)
     return corr_loc_i
 
 
@@ -289,9 +282,15 @@ def global_constants_jensen(n_vals, N_t, N_x):
     for i in range(n_vals):
         for j in range(n_vals):
             if i == j:
-                C[i, j] = (N_t-1)/(N_x[i]*(N_x[i]-1))
+                if N_x[i] <= 1:
+                    C[i, j] = 0
+                else:
+                    C[i, j] = (N_t-1)/float(N_x[i]*(N_x[i]-1))
             else:
-                C[i, j] = (N_t-N_x[i])/(N_x[i]*N_x[j])
+                if N_x[i] == 0 or N_x[j] == 0:
+                    C[i, j] = 0
+                else:
+                    C[i, j] = (N_t-N_x[i])/float(N_x[i]*N_x[j])
     return C
 
 
