@@ -264,7 +264,7 @@ def count_in_neighborhood(vals, n_vals):
     return counts_i
 
 
-def compute_loc_M_index(counts_i, idx, n_vals):
+def compute_loc_M_index(counts_i, idx, n_vals, sm_par=0.0001):
     "Computing the M index."
     ## Compute the correlation contribution
     counts_i[idx] -= 1
@@ -273,13 +273,13 @@ def compute_loc_M_index(counts_i, idx, n_vals):
         corr_loc_i = np.zeros(n_vals)
     elif counts_i[idx] == tot:
         corr_loc_i = np.zeros(n_vals)
-        corr_loc_i[idx] = counts_i[idx]/float(tot)
+        corr_loc_i[idx] = (counts_i[idx]+sm_par)/(float(tot)+sm_par)
     else:
-        corr_loc_i = counts_i/float(tot-counts_i[idx])
-        corr_loc_i[idx] = counts_i[idx]/float(tot)
+        corr_loc_i = (counts_i+sm_par)/float(tot-counts_i[idx]+sm_par)
+        corr_loc_i[idx] = (counts_i[idx]+sm_par)/(float(tot)+sm_par)
     # Avoid nan values
-    corr_loc_i[np.isnan(corr_loc_i)] = 0.
-    corr_loc_i[corr_loc_i < 0] = 0.
+    corr_loc_i[np.isnan(corr_loc_i)] = sm_par
+    corr_loc_i[corr_loc_i < 0] = sm_par
     return corr_loc_i
 
 
