@@ -22,3 +22,12 @@ def filter_with_random_nets(net, random_nets, p_thr):
             bool_net[i, j] = np.sum(net[i, j] < random_nets[i, j, :])/n < p_thr
     net = net[bool_net]
     return net
+
+
+def reorder_net(net, type_vals):
+    "Sort the type vals and the net given in order to a better presentation."
+    indices = sorted(range(len(type_vals)), key=lambda k: type_vals[k])
+    s_type_vals = sorted(type_vals)
+    out = net[indices, :]
+    out = out[:, indices]
+    return out, s_type_vals, indices

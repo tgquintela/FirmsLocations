@@ -116,7 +116,7 @@ class Pjensen():
         ## Closing process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
-        return net, counts, type_vals, N_x
+        return C, corr_loc, counts, type_vals, N_x
 
     def built_network_from_neighs(self, df, type_var, permuts=None):
         """Main function to perform spatial correlation computation."""
@@ -161,7 +161,7 @@ class Pjensen():
         ## Closing process
         self.logfile.write_log(message3 % (time.time()-t00))
         self.logfile.write_log(message_close)
-        return net, counts, type_vals, N_x
+        return C, corr_loc, counts, type_vals, N_x
 
     def local_jensen_corr(self, cnae_arr, reindices, i, neighs, n_vals):
         """Function wich acts as a switcher between computing M index in
@@ -186,9 +186,14 @@ class Pjensen():
                                                                   reindex)
         return random_nets
 
+#    def quality_point(df, points=None, radius=None, ):
+#        if points is None:
+#        if radius is None:
+#        for i in range(N_t):
+
 
 ###############################################################################
-###############################################################################
+############################### Counts and corr ###############################
 ###############################################################################
 def compute_M_indexs_parallel(cnae_arr, reindices, i, neighs, n_vals, n_procs):
     """Computation of the M index in parallel."""
@@ -238,19 +243,57 @@ def computation_of_counts(args):
     """Individual function of computation of local counts."""
     vals, idx, n_vals = tuple(args)
     ## Count the number of companies of each type
+    counts_i = count_in_neighborhood(vals, n_vals)
+    ## Compute the correlation contribution
+    corr_loc_i = compute_loc_M_index(counts_i, idx, n_vals)
+    return corr_loc_i, counts_i
+
+
+def count_in_neighborhood(vals, n_vals):
+    "Counting neighbours in the neighbourhood."
+    vals, n_vals = tuple(args)
     counts_i = [np.count_nonzero(np.equal(vals, v)) for v in range(n_vals)]
     counts_i = np.array(counts_i)
+    return counts_i
+
+
+def compute_loc_M_index(counts_i, idx, n_vals):
+    "Computing the M index."
     ## Compute the correlation contribution
     counts_i[idx] -= 1
     tot = counts_i.sum()
-    if counts_i[idx] == tot:
+    if tot == 0:
+        corr_loc_i[:] = 0.
+    elif counts_i[idx] == tot:
         corr_loc_i = np.zeros(n_vals)
         corr_loc_i[idx] = counts_i[idx]/float(tot)
     else:
         corr_loc_i = counts_i/float(tot-counts_i[idx])
         corr_loc_i[idx] = counts_i[idx]/float(tot)
+    # Avoid nan values
     corr_loc_i[np.isnan(corr_loc_i)] = 0.
-    return corr_loc_i, counts_i
+    #### debug
+    if np.any(corr_loc_i) < 0:
+        print corr_loc_i
+    ##########
+    return corr_loc_i
+
+
+###############################################################################
+############################### Quality measure ###############################
+###############################################################################
+def quality_measure_w_search(kdtree, points, cnae_arr, radius):
+    ""
+
+    if type(radius) == np.ndarray:
+        r = radius
+
+    for i in range(points.shape[0]):
+        if type(radius) == np.ndarray:
+            r = radius[i]
+        ## Obtaining neighs of a given point
+        point_i = points[i, :]
+        neighs = kdtree.query_ball_point(point_i, r)
 
 
 ###############################################################################
@@ -296,12 +339,12 @@ def global_constants_jensen(n_vals, N_t, N_x):
         for j in range(n_vals):
             if i == j:
                 if N_x[i] <= 1:
-                    C[i, j] = 0
+                    C[i, j] = 0.
                 else:
                     C[i, j] = (N_t-1)/float(N_x[i]*(N_x[i]-1))
             else:
                 if N_x[i] == 0 or N_x[j] == 0:
-                    C[i, j] = 0
+                    C[i, j] = 0.
                 else:
                     C[i, j] = (N_t-N_x[i])/float(N_x[i]*N_x[j])
     return C
