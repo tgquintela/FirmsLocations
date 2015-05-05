@@ -23,7 +23,7 @@ class Model():
         fig1, fig2 = create_model_report(net, sectors, dirname, reportname)
         return fig1, fig2
 
-    def to_pajeck(net, sectors, netfiledata, filenamenet):
+    def to_pajek(self, net, sectors, netfiledata, filenamenet):
         net_out = nx.from_numpy_matrix(net)
         net_out = nx.relabel_nodes(net_out, dict(zip(range(len(sectors)), sectors)))
-        nx.write_pajeck(net_out, join(netfiledata, filenamenet))
+        nx.write_pajek(net_out, join(netfiledata, filenamenet))

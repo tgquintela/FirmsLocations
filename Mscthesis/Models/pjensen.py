@@ -28,7 +28,7 @@ Start inferring net:
 """
 message1 = "Processing %s:"
 message2 = "completed in %f seconds.\n"
-message2a = "Bunch of %s rows completed in %f seconds.\n"
+message2a = " %s bunch of %s rows completed in %f seconds.\n"
 message3 = "Total time expended computing net: %f seconds.\n"
 message_close = '----------------------------------------\n'
 
@@ -81,6 +81,7 @@ class Pjensen(Model):
         indices = np.array(df.index)
         ## Begin to track the process
         t0 = time.time()
+        bun = 0
         for i in xrange(N_t):
             # Check radius
             if type(radius) == np.ndarray:
@@ -96,14 +97,15 @@ class Pjensen(Model):
                 vals = cnae_arr[neighs_k]
                 ## Count the number of companies of each type
                 corr_loc_i, counts_i = computation_of_counts([vals, val_i,
-                                                              n_vals])
+                                                              n_vals, N_x])
                 ## Aggregate to local correlation
                 corr_loc[val_i, :, k] += corr_loc_i
                 counts[val_i, :, k] += counts_i
             ## Finish to track this process
             if bool_inform and (i % self.lim_rows) == 0 and i != 0:
                 t_sp = time.time()-t0
-                self.logfile.write_log(message2a % (self.lim_rows, t_sp))
+                bun += 1
+                self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
                 t0 = time.time()
         ## 2. Building a net
         C = global_constants_jensen(n_vals, N_t, N_x)
@@ -111,7 +113,7 @@ class Pjensen(Model):
         net = np.zeros((n_vals, n_vals, n_calc))
         for i in range(n_calc):
             idx_null = np.logical_or(C == 0, corr_loc[:, :, i] == 0)
-            net = np.log10(np.multiply(C, corr_loc[:, :, i]))
+            net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
             net[idx_null] = 0.
         # Averaging counts
         counts = counts/float(N_t)
@@ -149,20 +151,22 @@ class Pjensen(Model):
                 neighs_j = [int(e) for e in neighs_j]
                 corr_loc_j, counts_j = self.local_jensen_corr(cnae_arr,
                                                               reindices, j,
-                                                              neighs_j, n_vals)
+                                                              neighs_j, n_vals,
+                                                              N_x)
                 corr_loc_f += corr_loc_j
                 counts_f += counts_j
             corr_loc += corr_loc_f
             counts += counts_f
             ## Finish to track this process
             self.logfile.write_log(message2 % (time.time()-t0))
+            del neighs
         ## 2. Building a net
         C = global_constants_jensen(n_vals, N_t, N_x)
         # Computing the nets
         net = np.zeros((n_vals, n_vals, n_calc))
         for i in range(n_calc):
             idx_null = np.logical_or(C == 0, corr_loc[:, :, i] == 0)
-            net = np.log10(np.multiply(C, corr_loc[:, :, i]))
+            net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
             net[idx_null] = 0.
         # Averaging counts
         counts = counts/float(N_t)
@@ -171,17 +175,17 @@ class Pjensen(Model):
         self.logfile.write_log(message_close)
         return net, counts, type_vals, N_x
 
-    def local_jensen_corr(self, cnae_arr, reindices, i, neighs, n_vals):
+    def local_jensen_corr(self, cnae_arr, reindices, i, neighs, n_vals, N_x):
         """Function wich acts as a switcher between computing M index in
         sequential or in parallel.
         """
         if self.n_procs is not None:
             corrs, count = compute_M_indexs_parallel(cnae_arr, reindices, i,
                                                      neighs, n_vals,
-                                                     self.n_procs)
+                                                     self.n_procs, N_x)
         else:
             corrs, count = compute_M_indexs_sequential(cnae_arr, reindices, i,
-                                                       neighs, n_vals)
+                                                       neighs, n_vals, N_x)
         return corrs, count
 
     def build_random_nets(self, df, type_var, n):
@@ -203,7 +207,8 @@ class Pjensen(Model):
 ###############################################################################
 ############################### Counts and corr ###############################
 ###############################################################################
-def compute_M_indexs_parallel(cnae_arr, reindices, i, neighs, n_vals, n_procs):
+def compute_M_indexs_parallel(cnae_arr, reindices, i, neighs, n_vals, n_procs,
+                              N_x):
     """Computation of the M index in parallel."""
     ## Loop over the possible reindices
     n_calc = reindices.shape[1]
@@ -213,7 +218,7 @@ def compute_M_indexs_parallel(cnae_arr, reindices, i, neighs, n_vals, n_procs):
         val_i = cnae_arr[reindices[i, k]]
         neighs_k = reindices[neighs, k]
         vals = cnae_arr[neighs_k]
-        args.append([vals, val_i, n_vals])
+        args.append([vals, val_i, n_vals, N_x])
         vals_i[k] = val_i
 
     ## Computation of counts
@@ -228,7 +233,7 @@ def compute_M_indexs_parallel(cnae_arr, reindices, i, neighs, n_vals, n_procs):
     return corr_loc, counts_i
 
 
-def compute_M_indexs_sequential(cnae_arr, reindices, i, neighs, n_vals):
+def compute_M_indexs_sequential(cnae_arr, reindices, i, neighs, n_vals, N_x):
     """Computation of M index in sequential."""
     ## Loop over the possible reindices
     n_calc = reindices.shape[1]
@@ -240,7 +245,7 @@ def compute_M_indexs_sequential(cnae_arr, reindices, i, neighs, n_vals):
         neighs_k = reindices[neighs, k]
         vals = cnae_arr[neighs_k]
         ## Computation of counts
-        corr, counts = computation_of_counts([vals, val_i, n_vals])
+        corr, counts = computation_of_counts([vals, val_i, n_vals, N_x])
         ## Aggregate to local correlation
         corr_loc[val_i, :, k] += corr
         counts_i[val_i, :, k] += counts
@@ -249,11 +254,11 @@ def compute_M_indexs_sequential(cnae_arr, reindices, i, neighs, n_vals):
 
 def computation_of_counts(args):
     """Individual function of computation of local counts."""
-    vals, idx, n_vals = tuple(args)
+    vals, idx, n_vals, N_x = tuple(args)
     ## Count the number of companies of each type
     counts_i = count_in_neighborhood(vals, n_vals)
     ## Compute the correlation contribution
-    corr_loc_i = compute_loc_M_index(counts_i, idx, n_vals)
+    corr_loc_i = compute_loc_M_index(counts_i, idx, n_vals, N_x)
     return corr_loc_i, counts_i
 
 
@@ -264,19 +269,19 @@ def count_in_neighborhood(vals, n_vals):
     return counts_i
 
 
-def compute_loc_M_index(counts_i, idx, n_vals, sm_par=0.0001):
+def compute_loc_M_index(counts_i, idx, n_vals, N_x, sm_par=1e-10):
     "Computing the M index."
     ## Compute the correlation contribution
     counts_i[idx] -= 1
     tot = counts_i.sum()
     if tot == 0:
-        corr_loc_i = np.zeros(n_vals)
+        corr_loc_i = np.ones(n_vals)*sm_par
     elif counts_i[idx] == tot:
         corr_loc_i = np.zeros(n_vals)
-        corr_loc_i[idx] = (counts_i[idx]+sm_par)/(float(tot)+sm_par)
+        corr_loc_i[idx] = (counts_i[idx]+sm_par)/(float(tot)+N_x[idx]*sm_par)
     else:
-        corr_loc_i = (counts_i+sm_par)/float(tot-counts_i[idx]+sm_par)
-        corr_loc_i[idx] = (counts_i[idx]+sm_par)/(float(tot)+sm_par)
+        corr_loc_i = (counts_i+sm_par)/float(tot-counts_i[idx]+N_x[idx]*sm_par)
+        corr_loc_i[idx] = (counts_i[idx]+sm_par)/(float(tot)+N_x[idx]*sm_par)
     # Avoid nan values
     corr_loc_i[np.isnan(corr_loc_i)] = sm_par
     corr_loc_i[corr_loc_i < 0] = sm_par
@@ -311,6 +316,12 @@ def preparing_net_computation(df, type_var, lim_rows, permuts):
     bool_inform = True if lim_rows is not None else False
     # Values
     type_vals = list(df[type_var].unique())
+    type_vals = sorted(type_vals)
+    ####### debug:
+    ###rand = np.random.permutation(len(type_vals))
+    ###type_vals = [type_vals[i] for i in rand]
+    #######
+    #type_vals = sorted(type_vals)
     n_vals = len(type_vals)
     repl = dict(zip(type_vals, range(n_vals)))
     cnae_arr = np.array(df[type_var].replace(repl))
