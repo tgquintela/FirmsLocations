@@ -62,10 +62,10 @@ def transf4compdist_global_homo(data, loc_vars, inverse=False):
     if not inverse:
         data.loc[:, loc_vars] = np.pi/180.*data.loc[:, loc_vars]
         lats = data.loc[:, loc_vars[1]]
-        #data.loc[:, loc_vars[0]] = data.loc[:, loc_vars[0]]*np.cos(lats)
+        data.loc[:, loc_vars[0]] = data.loc[:, loc_vars[0]]*np.cos(lats)
     else:
         lats = data.loc[:, loc_vars[1]]
         data.loc[:, loc_vars] = 180./np.pi*data.loc[:, loc_vars]
-    #    data.loc[:, loc_vars[0]] = data.loc[:, loc_vars[0]]/np.cos(lats)
+        data.loc[:, loc_vars[0]] = data.loc[:, loc_vars[0]]/np.cos(lats)
 
     return data

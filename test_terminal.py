@@ -148,3 +148,24 @@ t0 = time.time()
 res2 = f2(a, idxs)
 print mess % ("f2", time.time()-t0)
 
+### Measure distances in different methods
+import numpy as np
+import pandas as pd
+from scipy.spatial.distance import pdist
+
+#data = pd.read_csv(, sep=';')
+#data = np.array(data[['ES-X', 'ES-Y']])
+data = np.array([[41.407579, 2.209777], [41.380601, 2.122963]])
+res = [7.84]
+data2 = np.array([[41.380601, 2.122963], [41.300606, 2.116594]])
+res2 = [8,89]
+data3 = np.array([[41.407579, 2.209777], [41.380601, 2.122963], [41.300606, 2.116594]])
+
+def f1(locs):
+    locs = np.pi/180.*locs
+    locs[:, 1] = locs[:, 1]*np.cos(locs[:, 0])
+    dist = 6371.009 * pdist(locs)
+    return dist
+    
+
+

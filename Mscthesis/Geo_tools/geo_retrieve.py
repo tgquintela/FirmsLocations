@@ -141,7 +141,7 @@ class Compute_self_neighs():
                     neighs = pd.DataFrame(neighs, index=indices[i_last:i],
                                           columns=col)
                     num_code = auxiliar_name_creator(max_len, i_last, i-1)
-                    num_code_name = num_code.replace('-','_')
+                    num_code_name = num_code.replace('-', '_')
                     namefile = join(dirname, filename+'_'+num_code_name)
                     neighs.to_csv(namefile, sep=';')
                     # Reset process
@@ -161,7 +161,7 @@ class Compute_self_neighs():
                     neighs = pd.DataFrame(neighs, index=indices[i_last:i],
                                           columns=col)
                     num_code = auxiliar_name_creator(max_len, i_last, i-1)
-                    num_code_name = num_code.replace('-','_')
+                    num_code_name = num_code.replace('-', '_')
                     namefile = join(dirname, filename+'_'+num_code_name)
                     neighs.to_csv(namefile, sep=';')
                     # Reset process
@@ -177,7 +177,7 @@ class Compute_self_neighs():
                 neighs.append(str(local_n)[1:-1])
         # Save to file (Last bunch)
         neighs = pd.DataFrame(neighs, index=indices[i_last:i+1],
-                                columns=col)
+                              columns=col)
         num_code = auxiliar_name_creator(max_len, i_last, i)
         namefile = join(dirname, filename+'_'+num_code)
         neighs.to_csv(namefile, sep=';')
