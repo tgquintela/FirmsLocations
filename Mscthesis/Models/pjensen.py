@@ -57,7 +57,6 @@ class Pjensen(Model):
 
     def built_nets(self, df, type_var, loc_vars, radius, permuts=None):
         """Main unction for building the network using M-index.
-        TODO: Support to arrays in radius.
         """
         ## 0. Setting needed variables
         self.logfile.write_log(message0 % self.neighs_dir)
@@ -118,8 +117,10 @@ class Pjensen(Model):
         # Averaging counts
         counts = counts/float(N_t)
         ## Closing process
-        self.logfile.write_log(message3 % (time.time()-t00))
+        t_expended = time.time()-t00
+        self.logfile.write_log(message3 % t_expended)
         self.logfile.write_log(message_close)
+        self.time_expended = t_expended
         return net, counts, type_vals, N_x
 
     def built_network_from_neighs(self, df, type_var, permuts=None):
@@ -171,9 +172,98 @@ class Pjensen(Model):
         # Averaging counts
         counts = counts/float(N_t)
         ## Closing process
-        self.logfile.write_log(message3 % (time.time()-t00))
+        t_expended = time.time()-t00
+        self.logfile.write_log(message3 % (t_expended))
         self.logfile.write_log(message_close)
+        self.time_expended = t_expended
         return net, counts, type_vals, N_x
+
+    def built_nets_parallel(self, df, type_var, loc_vars, radius,
+                            permuts=None):
+        """Main unction for building the network using M-index in a parallel
+        way.
+        """
+        ## 0. Setting needed variables
+        mess = 'Parallel computation with %s cores.' % str(self.n_procs)
+        self.logfile.write_log(message0 % mess)
+        t00 = time.time()
+        # Preparing needed vars
+        aux = preparing_net_computation(df, type_var, self.lim_rows, permuts)
+        cnae_arr, type_vals, n_vals, N_t, N_x = aux[:5]
+        reindices, n_calc, bool_inform = aux[5:]
+        # KDTree retrieve object instantiation
+        locs = df[loc_vars].as_matrix()
+        kdtree = KDTree(locs, leafsize=10000)
+        radius = radius/6371.009
+        if type(radius) == float:
+            r = radius
+        elif type(radius) == str:
+            radius = np.array(df[radius])
+        ## 1. Division the task into different cores
+        if type(radius) != float:
+            divide_to_parallel([locs, cnae_arr, radius])
+        else:
+            divide_to_parallel([locs, cnae_arr])
+        #parallel_computation()
+        pass
+
+    def built_matrix(self, df, type_var, loc_vars, radius, permuts=None):
+        """Main unction for building the network using M-index.
+        """
+        ## 0. Setting needed variables
+        self.logfile.write_log(message0 % self.neighs_dir)
+        t00 = time.time()
+        # Preparing needed vars
+        aux = preparing_net_computation(df, type_var, self.lim_rows, permuts)
+        cnae_arr, type_vals, n_vals, N_t, N_x = aux[:5]
+        reindices, n_calc, bool_inform = aux[5:]
+        # KDTree retrieve object instantiation
+        locs = df[loc_vars].as_matrix()
+        kdtree = KDTree(locs, leafsize=10000)
+        radius = radius/6371.009
+        if type(radius) == float:
+            r = radius
+        elif type(radius) == str:
+            radius = np.array(df[radius])
+
+        ## 1. Computation of the local spatial correlation with M-index
+        corr_loc = []
+        indices = np.array(df.index)
+        C = global_constants_jensen(n_vals, N_t, N_x)
+
+        ## Begin to track the process
+        t0 = time.time()
+        bun = 0
+        for i in xrange(N_t):
+            # Check radius
+            if type(radius) == np.ndarray:
+                r = radius[i]
+            ## Obtaining neighs of a given point
+            point_i = locs[indices[i], :]
+            neighs = kdtree.query_ball_point(point_i, r)
+            ## Loop over the possible reindices
+            for k in range(n_calc):
+                #val_i = df.loc[reindices[i, k], type_var]
+                val_i = cnae_arr[reindices[i, k]]
+                neighs_k = reindices[neighs, k]
+                vals = cnae_arr[neighs_k]
+                ## Count the number of companies of each type
+                corr_loc_i, counts_i = computation_of_counts([vals, val_i,
+                                                              n_vals, N_x])
+                ## Aggregate to local correlation
+                corr_loc += normalize_with_Cs(C, corr_loc_i)
+            ## Finish to track this process
+            if bool_inform and (i % self.lim_rows) == 0 and i != 0:
+                t_sp = time.time()-t0
+                bun += 1
+                self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
+                t0 = time.time()
+        ## Closing process
+        t_expended = time.time()-t00
+        self.logfile.write_log(message3 % t_expended)
+        self.logfile.write_log(message_close)
+        self.time_expended = t_expended
+        return corr_loc, type_vals, N_x
 
     def local_jensen_corr(self, cnae_arr, reindices, i, neighs, n_vals, N_x):
         """Function wich acts as a switcher between computing M index in
@@ -286,6 +376,14 @@ def compute_loc_M_index(counts_i, idx, n_vals, N_x, sm_par=1e-10):
     corr_loc_i[np.isnan(corr_loc_i)] = sm_par
     corr_loc_i[corr_loc_i < 0] = sm_par
     return corr_loc_i
+
+
+def normalize_with_Cs(C, corr_loc):
+    "Comparing with null model."
+    res = np.zeros(corr_loc.shape)
+    for i in res.shape[2]:
+        res[:, :, i] = np.multiply(C, corr_loc[:, :, i])
+    return res
 
 
 ###############################################################################
