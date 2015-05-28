@@ -43,7 +43,7 @@ message_close = '----------------------------------------\n'
 
 ########### Class for parsing
 ##################################################################
-class Servicios_Parser():
+class Firms_Parser():
     """This class is the one which controls the parsing process of servicios
     information.
     """
@@ -109,26 +109,26 @@ class Servicios_Parser():
         self.logfile.write_log(message_close)
         return empresas
 
-    def write_servicios(self, empresas, filepath):
+    def write_firms(self, empresas, filepath):
         '''Write function in order to save a cleaned dataframe in a file.'''
         #self.files['clean'] = join(path, filename)
         self.files['clean'] = filepath
         write_dataframe_to_csv(empresas, filepath)
         del empresas
 
-    def filter_rows(self, servicios):
+    def filter_rows(self, empresas):
         '''Filter to only take into account the active companies in [06-12]'''
         if not self.cleaned:
             date = datetime.datetime.strptime('2006-01-01', '%Y-%m-%d')
-            servicios, self.indices = filter_servicios(servicios, date)
+            empresas, self.indices = filter_servicios(empresas, date)
             self.cleaned = True
-        return servicios
+        return empresas
 
-    def categorize_cols(self, servicios):
+    def categorize_cols(self, empresas):
         '''TO GENERALIZE'''
-        servicios = cp2str(servicios)
-        servicios = cnae2str(servicios)
-        return servicios
+        empresas = cp2str(empresas)
+        empresas = cnae2str(empresas)
+        return empresas
 
     def get_index_from_cleaned(self, infilepath):
         ## 0. Managing inputs
@@ -137,8 +137,8 @@ class Servicios_Parser():
         files = os.listdir(infilepath)
         indices = []
         for f in files:
-            servicios = parse_xlsx_sheet(join(infilepath, f))
-            indices.append(servicios.index)
+            empresas = parse_xlsx_sheet(join(infilepath, f))
+            indices.append(empresas.index)
         self.indices = (files, indices)
         self.cleaned = True
 
@@ -147,12 +147,12 @@ class Servicios_Parser():
         ### 0. Managing inputs
         ## 1. Parsing task
         if columns is None:
-            servicios = parse_servicios(filepath)
+            empresas = parse_servicios(filepath)
         else:
-            servicios, ids = parse_servicios_columns(filepath, columns, id_val)
+            empresas, ids = parse_servicios_columns(filepath, columns, id_val)
         ### Concat servicios
-        servicios = concat_from_dict(servicios, None)
+        empresas = concat_from_dict(empresas, None)
 
         ## 2. Transforming
-        servicios = self.categorize_cols(servicios)
-        return servicios
+        empresas = self.categorize_cols(empresas)
+        return empresas
