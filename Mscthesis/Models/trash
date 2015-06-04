@@ -183,3 +183,201 @@ def local_jensen_corr_from_neighs(cnae_arr, neighs, type_vals, reindices):
                     corr_loc_i[idx] = counts_i[idx]/tot
                 ## Aggregate to local correlation
                 corr_loc[idx, :, k] += corr_loc_i
+
+
+
+
+
+
+
+#######################################################################################
+#######################################################################################
+### REFACTORING CLASS
+#######################################################################################
+#######################################################################################
+#######################################################################################
+
+
+
+
+
+
+    def compute_nets_sequ_data(self):
+        """Main abstract function for compute matrix of spatial correlation
+        from data in a sequential mode.
+        """
+        n_vals, n_calc, df, N_t, N_x, radius, locs, kdtree, type_arr, reindices, bool_inform = aux
+        ## 1. Computation of the local spatial correlation with a given measure
+        corr_loc = np.zeros((n_vals, n_vals, n_calc))
+        indices = np.array(df.index)
+        ## Begin to track the process
+        t0 = time.time()
+        bun = 0
+        for i in xrange(N_t):
+            # Check radius
+            if type(radius) == np.ndarray:
+                r = radius[i]
+            ## Obtaining neighs of a given point
+            point_i = locs[indices[i], :]
+            neighs = kdtree.query_ball_point(point_i, r)
+            ## Loop over the possible reindices
+            for k in range(n_calc):
+                # Retrieve local characterizers
+                val_i = type_arr[reindices[i, k]]
+                neighs_k = reindices[neighs, k]
+                vals = type_arr[neighs_k]
+                # Computation of the local measure
+                corr_loc_i = self.compute_local_measure(vals, val_i, n_vals,
+                                                        N_x)
+                # Aggregation
+                corr_loc[val_i, :, k] += corr_loc_i
+            ## Finish to track this process
+            if bool_inform and (i % self.lim_rows) == 0 and i != 0:
+                t_sp = time.time()-t0
+                bun += 1
+                self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
+                t0 = time.time()
+        return corr_loc
+
+    def compute_nets_sequ_neighs():
+        """Main function to perform spatial correlation computation."""
+        n_vals, n_calc, df, N_t, N_x, radius, locs, kdtree, type_arr, reindices, bool_inform = aux
+
+        ## 1. Computation of local spatial correlations
+        corr_loc = np.zeros((n_vals, n_vals, n_calc))
+        for f in self.neighs_files:
+            ## Begin to track the process
+            self.logfile.write_log(message1 % (f.split('/')[-1]))
+            t0 = time.time()
+            ## Read the file of neighs
+            neighs = pd.read_csv(f, sep=';', index_col=0)
+            ## Compute corr with these neighs
+            indices = np.array(neighs.index)
+            corr_loc_f = np.zeros((n_vals, n_vals, n_calc))
+            counts_f = np.zeros((n_vals, n_vals, n_calc))
+            for j in xrange(indices.shape[0]):
+                ## Retrieve neighs from neighs dataframe
+                neighs_j = neighs.loc[indices[j], 'neighs'].split(',')
+                neighs_j = [int(e) for e in neighs_j]
+                # Compute measure with random permutations possibilities
+                for k in range(n_calc):
+                    # Retrieve local characterizers
+                    val_i = type_arr[reindices[j, k]]
+                    neighs_k = reindices[neighs_j, k]
+                    vals = type_arr[neighs_k]
+                    # Computation of the local measure
+                    corr_loc_j = self.compute_local_measure(vals, val_i,
+                                                            n_vals, N_x)
+                corr_loc_f += corr_loc_j
+            corr_loc += corr_loc_f
+            ## Finish to track this process
+            self.logfile.write_log(message2 % (time.time()-t0))
+            del neighs
+        return corr_loc
+
+    def compute_nets_sequ_aggs():
+        """Main function to perform spatial correlation computation in a
+        sequential mode using aggregated information given by a '''''file'''''.
+        """
+        n_vals, n_calc, df, N_t, N_x, radius, locs, kdtree, type_arr, reindices, bool_inform = aux
+
+        # KDTree retrieve object instantiation
+        locs2 = df2[loc_vars2].as_matrix()
+        kdtree = KDTree(locs2, leafsize=100)
+        agg_desc = df2[agg_desc_vars].as_matrix()
+
+        ## 1. Computation of local spatial correlations
+        corr_loc = np.zeros((n_vals, n_vals, n_calc))
+        indices = np.array(df.index)
+        ## Begin to track the process
+        t0 = time.time()
+        bun = 0
+        for i in xrange(N_t):
+            # Check radius
+            if type(radius) == np.ndarray:
+                r = radius[i]
+            ## Obtaining neighs of a given point
+            point_i = locs[indices[i], :]
+            neighs = kdtree.query_ball_point(point_i, r)
+            ## Loop over the possible reindices
+            for k in range(n_calc):
+                # Retrieve local characterizers
+                val_i, neighs_k, vals =\
+                    retrieve_local_caracterizers(i, k, neighs, type_arr,
+                                                 reindices, agg_desc)
+                # Computation of the local measure
+                corr_loc_i = self.compute_from_descriptors(vals, val_i, n_vals,
+                                                           N_x)
+                # Aggregation
+                corr_loc[val_i, :, k] += corr_loc_i
+            ## Finish to track this process
+            if bool_inform and (i % self.lim_rows) == 0 and i != 0:
+                t_sp = time.time()-t0
+                bun += 1
+                self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
+                t0 = time.time()
+        return corr_loc
+
+    def compute_nets_parallel_data():
+        pass
+
+    def compute_nets_parallel_neighs():
+        pass
+
+    ###########################################################################
+    ########################### Matrix computation ############################
+    ###########################################################################
+    def compute_matrix(self, df, type_var, loc_vars, radius, permuts=None):
+        ## 0. Setting needed variables
+        self.logfile.write_log(message0 % self.neighs_dir)
+        t00 = time.time()
+        # Preparing needed vars
+        aux = preparing_net_computation(df, type_var, self.lim_rows, permuts)
+        type_arr, type_vals, n_vals, N_t, N_x = aux[:5]
+        reindices, n_calc, bool_inform = aux[5:]
+        # KDTree retrieve object instantiation
+        locs = df[loc_vars].as_matrix()
+        kdtree = KDTree(locs, leafsize=10000)
+        radius = radius/6371.009
+        if type(radius) == float:
+            r = radius
+        elif type(radius) == str:
+            radius = np.array(df[radius])
+
+        ## 1. Computation of the local spatial correlation with M-index
+        corr_loc = []
+        indices = np.array(df.index)
+        global_nfo_desc = self.compute_global_info_descriptor(n_vals, N_t, N_x)
+        ## Begin to track the process
+        t0 = time.time()
+        bun = 0
+        for i in xrange(N_t):
+            # Check radius
+            if type(radius) == np.ndarray:
+                r = radius[i]
+            ## Obtaining neighs of a given point
+            point_i = locs[indices[i], :]
+            neighs = kdtree.query_ball_point(point_i, r)
+            ## Loop over the possible reindices
+            for k in range(n_calc):
+                # Retrieve local characterizers
+                val_i, neighs_k, vals =\
+                    retrieve_local_caracterizers(i, k, neighs, type_arr,
+                                                 reindices, type_arr)
+                # Computation of the descriptors
+                descriptors = self.compute_local_descriptors(val_i, vals,
+                                                             n_vals, N_x,
+                                                             **global_nfo_desc)
+                corr_loc.append(descriptors)
+            ## Finish to track this process
+            if bool_inform and (i % self.lim_rows) == 0 and i != 0:
+                t_sp = time.time()-t0
+                bun += 1
+                self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
+                t0 = time.time()
+        ## Closing process
+        t_expended = time.time()-t00
+        self.logfile.write_log(message3 % t_expended)
+        self.logfile.write_log(message_close)
+        self.time_expended = t_expended
+        return corr_loc, type_vals, N_x

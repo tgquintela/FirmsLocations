@@ -36,3 +36,138 @@
         self.indices = (files, indices)
         self.cleaned = True
         print "The process lasted %f seconds." % (time.time()-t0)
+
+
+    def get_index_from_cleaned(self, infilepath):
+        """TODEPRECATE
+           -----------
+        """
+        ## 0. Managing inputs
+        self.cleaned = False
+        ## 1. Parsing
+        files = os.listdir(infilepath)
+        indices = []
+        for f in files:
+            empresas = parse_xlsx_sheet(join(infilepath, f))
+            indices.append(empresas.index)
+        self.indices = (files, indices)
+        self.cleaned = True
+
+
+    def parse_columns(self, filepath=None, columns=None, id_val=None):
+        '''Parsing function which considers if we have parsed or not before.
+        TODEPRECATE
+        -----------
+        '''
+        ### 0. Managing inputs
+        ## 1. Parsing task
+        if columns is None:
+            empresas = parse_servicios(filepath)
+        else:
+            empresas, ids = parse_servicios_columns(filepath, columns, id_val)
+        ### Concat servicios
+        empresas = concat_from_dict(empresas, None)
+
+        ## 2. Transforming
+        empresas = self.categorize_cols(empresas)
+        return empresas
+
+    def filter_rows(self, empresas):
+        '''Filter to only take into account the active companies in [06-12]
+        TODEPRECATE
+        '''
+        if not self.cleaned:
+            date = datetime.datetime.strptime('2006-01-01', '%Y-%m-%d')
+            empresas, self.indices = filter_servicios(empresas, date)
+            self.cleaned = True
+        return empresas
+
+
+    def parse_todeprecate(self, filepath=None, cleaned=None):
+        '''Parsing function which considers if we have parsed or not before.'''
+        ### 0. Managing inputs
+        self.cleaned = self.cleaned if cleaned is None else cleaned
+        if cleaned:
+            self.files['clean'] = filepath
+        else:
+            self.files['raw'] = filepath
+        # Tracking process with logfile
+        t00 = time.time()
+        self.logfile.write_log(message0 % (filepath.split('/')[-1]))
+        self.logfile.write_log(message1)
+        ## 1. Parsing task
+        if not self.cleaned:
+            ### parse files
+            servicios = parse_servicios(join(filepath, 'SERVICIOS'))
+            ### filter in parsing
+            date = datetime.datetime.strptime('2006-01-01', '%Y-%m-%d')
+            loc_vars = ['ES-X', 'ES-Y']
+            servicios = filter_servicios_dict(servicios, date, loc_vars)
+            ### get indices
+            self.indices = get_index_from_dict(servicios)
+            ### Concat servicios
+            servicios = concat_from_dict(servicios, None)
+            ### Parse manufactures
+            manufactures = parse_manufactures(filepath)
+            ### Concat manufacturas y servicios
+            empresas = {'manufacturas': manufactures, 'servicios': servicios}
+            empresas = concat_from_dict(empresas, 'type')
+        else:
+            ### parse cleaned file
+            empresas = pd.io.parsers.read_csv(filepath)
+            ### get indices
+            self.indices = np.array(empresas.index)
+        ## Stop to track the parsing
+        self.logfile.write_log(message2 % (time.time()-t00))
+        ## 2. Tranforming
+        # Start tracking process
+        t0 = time.time()
+        self.logfile.write_log(message1a)
+        ## Transformation
+        empresas = self.categorize_cols(empresas)
+        ## 3. Reindex
+        empresas.index = range(empresas.shape[0])
+        ## Closing the tracking
+        self.logfile.write_log(message2 % (time.time()-t0))
+        self.logfile.write_log(message3 % (time.time()-t00))
+        self.logfile.write_log(message_close)
+        return empresas
+
+
+    def write_firms(self, empresas, filepath):
+        '''Write function in order to save a cleaned dataframe in a file.'''
+        self.files['clean'] = filepath
+        write_dataframe_to_csv(empresas, filepath)
+        del empresas
+
+
+
+
+#### From clean_module
+##########################
+def clean_data_aperture(inpath, outpath):
+    "Compute the aperture date for all the files."
+    # Compute aperture for manufactures
+    df = parse_xlsx_sheet(join(inpath, "Manufactures.xlsx"))
+    write_compute_aperture_date(df, outpath, 'constituc')
+    # Compute aperture for servicios
+    inpath2 = join(inpath, 'SERVICIOS/')
+    outpath2 = join(outpath, 'SERVICIOS/')
+    if not exists(outpath2):
+        os.mkdir(outpath2)
+    onlyfiles = [f for f in os.listdir(inpath2)
+                 if isfile(join(inpath2, f)) and check_xlsx(f)]
+    for f in onlyfiles:
+        df = parse_xlsx_sheet(join(inpath2, f))
+        write_compute_aperture_date(df, outpath2)
+
+
+def write_compute_aperture_date(df, outpath, varaperture=None):
+    "Compute the aperture dates and write a file."
+    if varaperture is None:
+        dates = obtain_open_aperture_date(df)
+        dates = pd.DataFrame(dates)
+    else:
+        dates = df[[varaperture]]
+    dates.to_csv(outpath)
+
