@@ -26,8 +26,9 @@ from itertools import product
 import datetime
 import pandas as pd
 
-from os.path import exists, join, isfile
+from os.path import exists, join, isfile, isdir
 import os
+import time
 
 from aux_functions import parse_xlsx_sheet, write_dataframe_to_excel
 
@@ -99,6 +100,10 @@ def clean(inpath, outpath):
     finantial_cols = aux
 
     ## 1. Parse manufactures
+    # Start traking
+    t0 = time.time()
+    print "Start parsing manufacturas."
+    # parse manufacturas
     manufacturas = parse_xlsx_sheet(join(inpath, 'Manufactures.xlsx'))
     # Rename columns
     cols = manufacturas.columns
@@ -114,18 +119,23 @@ def clean(inpath, outpath):
     name = 'Manufactures.xlsx'
     write_dataframe_to_excel(manufacturas[main_cols], name,
                              join(outpath, 'Main'))
+    # Tracking task
+    print "Manufacturas main lasted %f seconds." % (time.time()-t0)
     for i in range(len(finantial_cols)):
+        t0 = time.time()
         y = folders_years[i]
         write_dataframe_to_excel(manufacturas[finantial_cols[i]], name,
                                  join(join(outpath, 'Finantial'), y))
+        print "Manufacturas year %s lasted %f seconds." % (y, time.time()-t0)
     del manufacturas
 
     ## 1. Parse servicios
+    t0 = time.time()-t0
     onlyfiles = [f for f in os.listdir(inpath)
                  if isfile(join(inpath, f)) and check_xlsx(f)]
     for f in onlyfiles:
         # parse servicios
-        servicios = parse_xlsx_sheet(join(join(inpath, 'SERVICIOS'), f))
+        servicios = parse_xlsx_sheet(join(join(inpath, 'Servicios'), f))
         # Rename columns
         cols = servicios.columns
         newcolnames = clean_colnames_servi(cols)
@@ -136,13 +146,15 @@ def clean(inpath, outpath):
         # Separate and save
         write_dataframe_to_excel(servicios[main_cols], f,
                                  join(join(outpath, 'Main'), 'Servicios'))
+        print "Servicios main lasted %f seconds." % (time.time()-t0)
         # Write servicios
         path_fin = join(outpath, 'Finantial')
         for i in range(len(finantial_cols)):
+            t0 = time.time()
             y = folders_years[i]
             write_dataframe_to_excel(servicios[finantial_cols[i]], f,
                                      join(join(path_fin, y), 'Servicios'))
-    pass
+            print "Servicios year %s lasted %f seconds." % (y, time.time-t0)
 
 
 def clean_colnames_manu(cols):
@@ -248,3 +260,13 @@ def check_year_open(df, year):
     for i in range(m):
         logi = np.logical_or(logi, logis[:, i])
     return logi
+
+
+def check_cleaned(path):
+    """Check if the folder given is the parentfolder of a cleaned structure
+    for the module
+    """
+    bool_1 = isdir(join(path, 'Main'))
+    bool_2 = isdir(join(path, 'Finantial'))
+    bool_3 = bool_1 and bool_2
+    return bool_3
