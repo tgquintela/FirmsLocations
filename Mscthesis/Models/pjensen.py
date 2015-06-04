@@ -2,6 +2,10 @@
 """
 Module which groups all the functions related with the computation of the
 spatial correlation using Jensen model.
+
+TODO
+----
+- Support for more than 1 dimensional type_var.
 """
 
 import numpy as np
@@ -18,7 +22,7 @@ from Mscthesis.IO.write_log import Logger
 from Mscthesis.Models import Model
 
 
-########### Global variables needed
+########### Global variables needed for this module
 ##################################################################
 message0 = """========================================
 Start inferring net:
@@ -182,6 +186,9 @@ class Pjensen(Model):
                             permuts=None):
         """Main unction for building the network using M-index in a parallel
         way.
+        ==================================
+        TODO: Finish this function!!!!!!!!
+        ==================================
         """
         ## 0. Setting needed variables
         mess = 'Parallel computation with %s cores.' % str(self.n_procs)
@@ -207,8 +214,12 @@ class Pjensen(Model):
         #parallel_computation()
         pass
 
-    def built_matrix(self, df, type_var, loc_vars, radius, permuts=None):
+    def built_matrix_for_train(self, df, type_var, loc_vars, radius,
+                               permuts=None):
         """Main unction for building the network using M-index.
+        ==========================
+        TODO: Do this function!!!!
+        ==========================
         """
         ## 0. Setting needed variables
         self.logfile.write_log(message0 % self.neighs_dir)
@@ -230,6 +241,7 @@ class Pjensen(Model):
         corr_loc = []
         indices = np.array(df.index)
         C = global_constants_jensen(n_vals, N_t, N_x)
+        idx_null = C == 0
 
         ## Begin to track the process
         t0 = time.time()
@@ -251,7 +263,9 @@ class Pjensen(Model):
                 corr_loc_i, counts_i = computation_of_counts([vals, val_i,
                                                               n_vals, N_x])
                 ## Aggregate to local correlation
-                corr_loc += normalize_with_Cs(C, corr_loc_i)
+                aux = np.log10(np.multiply(C, corr_loc_i))
+                aux[idx_null] = 0.
+                corr_loc.append(aux)
             ## Finish to track this process
             if bool_inform and (i % self.lim_rows) == 0 and i != 0:
                 t_sp = time.time()-t0
@@ -279,7 +293,9 @@ class Pjensen(Model):
         return corrs, count
 
     def build_random_nets(self, df, type_var, n):
-        """Montecarlo creation of random nets by permutation."""
+        """Building the correlation matrices of n random permutations doing it
+        separately. It is inefficient but could be useful.
+        """
         n_vals = len(list(df[type_var].unique()))
         random_nets = np.zeros((n_vals, n_vals, n))
         for i in range(n):
@@ -343,7 +359,7 @@ def compute_M_indexs_sequential(cnae_arr, reindices, i, neighs, n_vals, N_x):
 
 
 def computation_of_counts(args):
-    """Individual function of computation of local counts."""
+    "Individual function of computation of local counts."
     vals, idx, n_vals, N_x = tuple(args)
     ## Count the number of companies of each type
     counts_i = count_in_neighborhood(vals, n_vals)
@@ -379,37 +395,28 @@ def compute_loc_M_index(counts_i, idx, n_vals, N_x, sm_par=1e-10):
 
 
 def normalize_with_Cs(C, corr_loc):
-    "Comparing with null model."
+    "Comparing with null model (the global stats computed as global constants)"
     res = np.zeros(corr_loc.shape)
     for i in res.shape[2]:
         res[:, :, i] = np.multiply(C, corr_loc[:, :, i])
     return res
 
 
-###############################################################################
-############################### Quality measure ###############################
-###############################################################################
-def quality_measure_w_search(kdtree, points, cnae_arr, cnae_p, radius):
-    ""
-
-    if type(radius) == np.ndarray:
-        r = radius
-
-    for i in range(points.shape[0]):
-        if type(radius) == np.ndarray:
-            r = radius[i]
-        ## Obtaining neighs of a given point
-        point_i = points[i, :]
-        neighs = kdtree.query_ball_point(point_i, r)
-        ## Retrieve val
-        val_i = cnae_p[i]
-        vals = cnae_arr[neighs]
+def normalize_with_Cs_matrix(C, corr_loc):
+    "Comparing with null model (the global stats computed as global constants)"
+    res = np.zeros(corr_loc.shape)
+    for i in res.shape[2]:
+        res[:, :, i] = np.multiply(C, corr_loc)
+    return res
 
 
 ###############################################################################
-###############################################################################
+############################# AUXILIAR FUNTIONS ###############################
 ###############################################################################
 def preparing_net_computation(df, type_var, lim_rows, permuts):
+    """Auxiliary function to prepare the initialization and preprocess of the
+    required input variables.
+    """
     # Inform
     bool_inform = True if lim_rows is not None else False
     # Values
@@ -449,6 +456,10 @@ def preparing_net_computation(df, type_var, lim_rows, permuts):
 
 
 def global_constants_jensen(n_vals, N_t, N_x):
+    """Auxiliary function to compute the global constants of the the M index
+    for spatial correlation. This constants represent the global density stats
+    which are used as the null model to compare with the local stats.
+    """
     ## Building the normalizing constants
     C = np.zeros((n_vals, n_vals))
     for i in range(n_vals):
@@ -467,6 +478,108 @@ def global_constants_jensen(n_vals, N_t, N_x):
     return C
 
 
+###############################################################################
+############################### Quality measure ###############################
+###############################################################################
+def quality_measure_w_search(kdtree, points, type_arr, type_p, radius):
+    """Quality measure of the points given regarding the measure proposed by
+    Jensen.
+    ==============================
+    TODO: Finish this function!!!!
+    ==============================
+    """
+
+    if type(radius) == np.ndarray:
+        r = radius
+
+    for i in range(points.shape[0]):
+        if type(radius) == np.ndarray:
+            r = radius[i]
+        ## Obtaining neighs of a given point
+        point_i = points[i, :]
+        neighs = kdtree.query_ball_point(point_i, r)
+        ## Retrieve val
+        val_i = type_p[i]
+        vals = type_arr[neighs]
+
+
+
+
+
+
+
+
+from Mscthesis.Preprocess.comp_complementary_data import average_position_by_cp
+
+
+    def built_nets_large_radio(self, df, type_var, loc_vars, radius,
+                               permuts=None):
+        """Main unction for building the network using M-index.
+        """
+        ## 0. Setting needed variables
+        self.logfile.write_log(message0 % self.neighs_dir)
+        t00 = time.time()
+        # Preparing needed vars
+        aux = preparing_net_computation(df, type_var, self.lim_rows, permuts)
+        cnae_arr, type_vals, n_vals, N_t, N_x = aux[:5]
+        reindices, n_calc, bool_inform = aux[5:]
+        # KDTree retrieve object instantiation
+        locs = df[loc_vars].as_matrix()
+        kdtree = KDTree(locs, leafsize=10000)
+        radius = radius/6371.009
+
+        ## 1. Computation of the local spatial correlation with M-index
+        corr_loc = np.zeros((n_vals, n_vals, n_calc))
+        counts = np.zeros((n_vals, n_vals, n_calc))
+        indices = np.array(df.index)
+        ## Begin to track the process
+        t0 = time.time()
+        bun = 0
+        for i in xrange(N_t):
+            # Check radius
+            if type(radius) == np.ndarray:
+                r = radius[i]
+            ## Obtaining neighs of a given point
+            point_i = locs[indices[i], :]
+            neighs = kdtree.query_ball_point(point_i, r)
+            ## Loop over the possible reindices
+            for k in range(n_calc):
+                #val_i = df.loc[reindices[i, k], type_var]
+                val_i = cnae_arr[reindices[i, k]]
+                neighs_k = reindices[neighs, k]
+                vals = cnae_arr[neighs_k]
+                ## Count the number of companies of each type
+                corr_loc_i, counts_i = computation_of_counts([vals, val_i,
+                                                              n_vals, N_x])
+                ## Aggregate to local correlation
+                corr_loc[val_i, :, k] += corr_loc_i
+                counts[val_i, :, k] += counts_i
+            ## Finish to track this process
+            if bool_inform and (i % self.lim_rows) == 0 and i != 0:
+                t_sp = time.time()-t0
+                bun += 1
+                self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
+                t0 = time.time()
+        ## 2. Building a net
+        C = global_constants_jensen(n_vals, N_t, N_x)
+        # Computing the nets
+        net = np.zeros((n_vals, n_vals, n_calc))
+        for i in range(n_calc):
+            idx_null = np.logical_or(C == 0, corr_loc[:, :, i] == 0)
+            net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
+            net[idx_null] = 0.
+        # Averaging counts
+        counts = counts/float(N_t)
+        ## Closing process
+        t_expended = time.time()-t00
+        self.logfile.write_log(message3 % t_expended)
+        self.logfile.write_log(message_close)
+        self.time_expended = t_expended
+        return net, counts, type_vals, N_x
+
+
+###############################################################################
+###############################################################################
 ####### COMPLETE FUNCTIONS
 ###############################################################################
 def built_network(df, loc_vars, type_var, radius):
@@ -514,27 +627,26 @@ def built_network(df, loc_vars, type_var, radius):
 
 
 def compute_unorm_corrs(counts_i, i):
-    """"""
-
+    """Complementary function to compute the unnormalized spatial correlation
+    measure from counts.
+    """
     Nts = np.sum(counts_i, 1)
     unnorm_corrs = np.zeros((counts_i.shape[1]))
-
     for j in range(counts_i.shape[1]):
         if i == j:
             aux = np.divide(counts_i[:, i].astype(float)-1, Nts)
             unnorm_corrs[i] = np.sum(aux)
-
         else:
             aux = np.divide(counts_i[:, j].astype(float),
                             Nts-(counts_i[:, i]-1))
             unnorm_corrs[j] = np.sum(aux)
-
     return unnorm_corrs
 
 
 def compute_neigh_count(df, j, type_vals, loc_vars, type_var, radius):
-    """
+    """Complementary function to count the neighs of each type.
     radius: expressed in kms.
+    TODO: More than one type_var column.
     """
 
     kdtree = KDTree(df[loc_vars].as_matrix(), leafsize=10000)
@@ -554,7 +666,7 @@ def compute_neigh_count(df, j, type_vals, loc_vars, type_var, radius):
 
 
 def jensen_net_from_neighs(df, type_var, neighs_dir):
-    """Function for building the network from neighbours."""
+    """Complementary function for building the network from neighbours."""
 
     type_vals = list(df[type_var].unique())
     n_vals = len(type_vals)
@@ -606,7 +718,7 @@ def jensen_net_from_neighs(df, type_var, neighs_dir):
 
 
 def jensen_net(df, type_var, loc_vars, radius, permutations=None):
-    """Function for building the network from neighbours."""
+    """Complementary function for building the network from neighbours."""
 
     ## 0. Set needed values
     # Values
