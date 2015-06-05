@@ -25,7 +25,7 @@ def filter_bool_dict(empresas, bool_arrays):
         if type(empresas[e1]) == dict:
             empresas[e1] = filter_bool_dict(empresas[e1], bool_arrays[e1])
         else:
-            empresas[e1] = empresas[e1].loc[bool_arrays, :]
+            empresas[e1] = empresas[e1].loc[bool_arrays[e1], :]
 
     return empresas
 
@@ -47,11 +47,11 @@ def retrieve_empresas_dict(d_data, coord_filter_nfo, date_filter_nfo):
 def retrieve_empresas(empresas, coord_filter_nfo, date_filter_nfo):
     """General retrieve function.
     """
-
     if type(empresas) == dict:
         bool_arrays = {}
         for emp in empresas.keys():
-            bool_arrays[emp] = retrieve_empresas_d(empresas, date_filter_nfo,
+            bool_arrays[emp] = retrieve_empresas_d(empresas[emp],
+                                                   date_filter_nfo,
                                                    coord_filter_nfo)
     else:
         bool_arrays = retrieve_empresas_d(empresas, date_filter_nfo,
@@ -131,9 +131,13 @@ def retrieve_by_dates(empresas, method, date_filter_nfo):
 
 def retrieve_by_year(servicios, year):
     "Retrieve the companies which were opened the year considered."
-
-    bool_0 = servicios['apertura'] <= datetime.datetime(year, 12, 31)
-    bool_1 = servicios['cierre'] >= datetime.datetime(year, 01, 01)
+    format_date = '%Y-%m-%d'
+    to_date = lambda x: datetime.datetime.strptime(x, format_date).date()
+    to_format = lambda x: x.split(' ')[0]
+    apertura = servicios['apertura'].apply(to_date)
+    cierre = servicios['cierre'].apply(to_format).apply(to_date)
+    bool_0 = apertura <= datetime.date(year, 12, 31)
+    bool_1 = cierre >= datetime.date(year, 01, 01)
     bool_year = np.logical_and(bool_0, bool_1)
 
     return bool_year
@@ -151,7 +155,7 @@ def retrieve_by_years(servicios, years, all_y=True):
 
     ## 1. Obtain bool arrays
     bool_years = np.ones(n) if all_y else np.zeros(n)
-    for i in range(years):
+    for i in range(years.shape[0]):
         bool_aux = retrieve_by_year(servicios, years[i])
         if all_y:
             bool_years = np.logical_and(bool_years, bool_aux)
@@ -172,9 +176,14 @@ def retrieve_by_intervaldates(servicios, years):
     else:
         years = np.array(years)
 
+    format_date = '%Y-%m-%d'
+    to_date = lambda x: datetime.datetime.strptime(x, format_date).date()
+    apertura = servicios['apertura'].apply(to_date)
+    cierre = servicios['cierre'].apply(to_date)
+
     ## Creation of the bool arrays
-    bool_0 = servicios['apertura'] <= datetime.datetime(years[-1], 12, 31)
-    bool_1 = servicios['cierre'] >= datetime.datetime(years[0], 01, 01)
+    bool_0 = apertura <= datetime.date(years[-1], 12, 31)
+    bool_1 = cierre >= datetime.date(years[0], 01, 01)
 
     bool_year = np.logical_and(bool_0, bool_1)
 
@@ -209,7 +218,7 @@ def filter_by_date(servicios, date):
 
 ############################# Filter coordinates ##############################
 ###############################################################################
-def retrieve_coordinates(empresas, coord_var, method):
+def retrieve_coordinates(empresas, coord_vars, method):
     """Return the bool_array which informs to us the correct using the method
     selected.
     """
