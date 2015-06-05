@@ -30,7 +30,7 @@ from os.path import exists, join, isfile, isdir
 import os
 import time
 
-from aux_functions import parse_xlsx_sheet, write_dataframe_to_excel
+from aux_functions import parse_xlsx_sheet, write_dataframe
 
 
 ############################## GLOBAL VARIABLES ###############################
@@ -72,7 +72,7 @@ def aggregate_by_mainvar(parentfolder, agg_var, loc_vars, type_var=None):
     return df, cols
 
 
-def clean(inpath, outpath):
+def clean(inpath, outpath, extension='csv'):
     """Do the cleaning data from the raw initial data. It formats the data to a
     folder structure in which it is separated the main information of a company
     with the finantial information in order to save memory and read unnecessary
@@ -117,22 +117,23 @@ def clean(inpath, outpath):
     manufacturas[coords] = reformat_coordinates_manu(manufacturas, coords)
     # Separate and save
     name = 'Manufactures.xlsx'
-    write_dataframe_to_excel(manufacturas[main_cols], name,
-                             join(outpath, 'Main'))
+    write_dataframe(manufacturas[main_cols], name,
+                    join(outpath, 'Main'), extension)
     # Tracking task
     print "Manufacturas main lasted %f seconds." % (time.time()-t0)
     for i in range(len(finantial_cols)):
         t0 = time.time()
         y = folders_years[i]
-        write_dataframe_to_excel(manufacturas[finantial_cols[i]], name,
-                                 join(join(outpath, 'Finantial'), y))
+        write_dataframe(manufacturas[finantial_cols[i]], name,
+                        join(join(outpath, 'Finantial'), y), extension)
         print "Manufacturas year %s lasted %f seconds." % (y, time.time()-t0)
     del manufacturas
 
     ## 1. Parse servicios
-    t0 = time.time()-t0
-    onlyfiles = [f for f in os.listdir(inpath)
-                 if isfile(join(inpath, f)) and check_xlsx(f)]
+    t0 = time.time()
+    onlyfiles = [f for f in os.listdir(join(inpath, 'Servicios'))
+                 if isfile(join(join(inpath, 'Servicios'), f))
+                 and check_xlsx(f)]
     for f in onlyfiles:
         # parse servicios
         servicios = parse_xlsx_sheet(join(join(inpath, 'Servicios'), f))
@@ -144,17 +145,17 @@ def clean(inpath, outpath):
         apertura = obtain_open_aperture_date(servicios)
         servicios['apertura'] = apertura
         # Separate and save
-        write_dataframe_to_excel(servicios[main_cols], f,
-                                 join(join(outpath, 'Main'), 'Servicios'))
+        write_dataframe(servicios[main_cols], f,
+                        join(join(outpath, 'Main'), 'Servicios'), extension)
         print "Servicios main lasted %f seconds." % (time.time()-t0)
         # Write servicios
         path_fin = join(outpath, 'Finantial')
         for i in range(len(finantial_cols)):
             t0 = time.time()
             y = folders_years[i]
-            write_dataframe_to_excel(servicios[finantial_cols[i]], f,
-                                     join(join(path_fin, y), 'Servicios'))
-            print "Servicios year %s lasted %f seconds." % (y, time.time-t0)
+            write_dataframe(servicios[finantial_cols[i]], f,
+                            join(join(path_fin, y), 'Servicios'), extension)
+            print "Servicios year %s lasted %f seconds." % (y, time.time()-t0)
 
 
 def clean_colnames_manu(cols):
@@ -181,7 +182,7 @@ def clean_colnames_servi(cols):
 def reformat_coordinates_manu(df, coord_var):
     """Divide the coordinates for 10^6 in order to get the correct
     dimensionality."""
-    aux = df[coord_var].as_matrix()/10**6
+    aux = df[coord_var].as_matrix()/float(10**6)
     return aux
 
 
@@ -189,8 +190,8 @@ def compute_extra_cols(df):
     ## Compute aperture date
     bool_null = np.array(df['constituc'].isnull())
     aux1 = obtain_open_aperture_date(df.loc[bool_null, :])
-    f = lambda x: datetime.datetime(int(x), 1, 1)
-    aux2 = np.zeros(np.logical_not(bool_null).sum()).astype(datetime.datetime)
+    f = lambda x: datetime.date(int(x), 1, 1)
+    aux2 = np.zeros(np.logical_not(bool_null).sum()).astype(datetime.date)
     idxs = np.nonzero(np.logical_not(bool_null))[0]
     for i in xrange(idxs.shape[0]):
         aux2[i] = f(int(df.loc[idxs[i], 'constituc']))
@@ -203,7 +204,7 @@ def compute_extra_cols(df):
     cierre = np.zeros(bool_2012.shape)
     cierre = np.array(df.loc[:, 'tancament'])
     cierre[np.logical_and(bool_act, bool_2012)] = 2013
-    cierre_aux = np.zeros(cierre.shape[0]).astype(datetime.datetime)
+    cierre_aux = np.zeros(cierre.shape[0]).astype(datetime.date)
     for i in xrange(cierre.shape[0]):
         cierre_aux[i] = f(cierre[i])
     cierre = pd.DataFrame(cierre_aux, columns=['cierre'], index=aux.index)
@@ -237,9 +238,9 @@ def obtain_open_aperture_date(df):
     ## Format dates
     dates = dates + years[0]-1
     dates = dates.astype(int)
-    aux = np.zeros(dates.shape).astype(datetime.datetime)
+    aux = np.zeros(dates.shape).astype(datetime.date)
     for i in range(aux.shape[0]):
-        aux[i] = datetime.datetime(int(dates[i]), 1, 1)
+        aux[i] = datetime.date(int(dates[i]), 1, 1)
     dates = aux
     return dates
 

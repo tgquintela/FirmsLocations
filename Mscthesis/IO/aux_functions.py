@@ -27,11 +27,19 @@ def concat_from_dict(d, keyvar):
     return d
 
 
+def write_dataframe(d, name, path, extension):
+    if extension in ['xlsx', 'xls']:
+        write_dataframe_to_excel(d, name, path)
+    elif extension == 'csv':
+        write_dataframe_to_csv(d, name, path)
+
+
 def write_dataframe_to_csv(d, name, path=''):
     """Function to write in csv the dataframes."""
-    name = name+'.csv' if len(name.split()) == 1 else name
+    ns = name.split('.')
+    name = name+'.csv' if len(ns) == 1 else ns[0]+'.csv'
     filepath = join(path, name)
-    d.to_csv(filepath, encoding='utf-8')
+    d.to_csv(filepath, encoding='utf-8', sep=';')
 
 
 def write_dataframe_to_excel(d, name, path=''):
@@ -48,3 +56,7 @@ def get_index_from_dict(d):
         idxs = np.array(d[e].index)
         d_ind[e] = idxs
     return d_ind
+
+
+def get_extension(filename):
+    return filename.split('.')[-1]

@@ -5,7 +5,7 @@ Module which the main functions to parse the data.
 
 from os import listdir
 from os.path import isfile, join
-from aux_functions import parse_xlsx_sheet
+from aux_functions import parse_xlsx_sheet, get_extension
 import numpy as np
 import pandas as pd
 import datetime
@@ -13,26 +13,38 @@ import datetime
 
 ################################# PARSE DATA ##################################
 ###############################################################################
-def parse_servicios(mypath=None):
-    """Parse function of the given
-    """
+def parse_empresas(filepath):
+    "Parse function in order to parse empresas giving the parent path."
+    ### Parse servicios
+    servicios = parse_servicios(join(filepath, 'Servicios'))
+    ### Parse manufactures
+    manufactures = parse_manufactures(filepath)
+    ## Join in a dict
+    empresas = {'manufacturas': manufactures, 'servicios': servicios}
+    return empresas
 
+
+def parse_servicios(mypath):
+    "Parse function for servicios."
     ## Prepare inputs and needed variables and functions
     # Useful functions
+
     check_xlsx = lambda f: f[-5:] == '.xlsx'
-    get_name = lambda f: f[:-5]
-    # format mypath
-    if mypath is None:
-        mypath = 'Data/raw_data/SERVICIOS/'
-    elif mypath[-1] != '/':
-        mypath = mypath+'/'
+    check_csv = lambda f: get_extension(f) == 'csv'
+    get_name = lambda f: f.split('.')[0]
 
     ## Compute
     # Obtain list of names
     onlyfiles = [f for f in listdir(mypath)
                  if isfile(join(mypath, f)) and check_xlsx(f)]
-    servicios = dict([(get_name(f), parse_xlsx_sheet(join(mypath, f)))
-                      for f in onlyfiles])
+    servicios_l = [(get_name(f), parse_xlsx_sheet(join(mypath, f)))
+                   for f in onlyfiles]
+    onlyfiles = [f for f in listdir(mypath)
+                 if isfile(join(mypath, f)) and check_csv(f)]
+    servicios_l = [(get_name(f), pd.read_csv(join(mypath, f), sep=';',
+                                             index_col=0))
+                   for f in onlyfiles] + servicios_l
+    servicios = dict(servicios_l)
     return servicios
 
 
@@ -63,13 +75,27 @@ def parse_servicios_columns(mypath, columns, id_val):
     return servicios, ids
 
 
-def parse_manufactures(mypath=None):
-    if mypath is None:
-        mypath = 'Data/raw_data/'
-    manufactures = parse_xlsx_sheet(join(mypath, "Manufactures.xlsx"))
-    f = lambda x: datetime.date(x, 12, 31)
-    manufactures.loc[:, 'cierre'] = manufactures['cierre'].apply(f)
+def parse_manufactures(mypath):
+    if isfile(join(mypath, "Manufactures.xlsx")):
+        manufactures = parse_xlsx_sheet(join(mypath, "Manufactures.xlsx"))
+        f = lambda x: datetime.date(x, 12, 31)
+        manufactures.loc[:, 'cierre'] = manufactures['cierre'].apply(f)
+    elif isfile(join(mypath, "Manufactures.csv")):
+        manufactures = pd.read_csv(join(mypath, "Manufactures.csv"), sep=';',
+                                   index_col=0)
     return manufactures
+
+
+def parse_finantial_by_year(parentpath, year):
+    "Parse the finantial data with the years considered."
+
+    filepath = join(parentpath, 'Finantial')
+    if year in [2006, 2007, 2008, 2009, 2010, 2011, 2012]:
+        year = str(int(year))
+    filepath = join(filepath, year)
+    finantial = parse_empresas(filepath)
+
+    return finantial
 
 
 ############################# PARSE LEGEND FILES ##############################
@@ -122,3 +148,9 @@ def parse_instructions_file(fileinstructions):
     describ_info['Description'] = describ_info['Description'].apply(f_str_nan)
 
     return describ_info
+
+
+######## TODO
+def parse_and_clean_raw():
+    "Parse the raw data and transform it to clean data."
+    pass
