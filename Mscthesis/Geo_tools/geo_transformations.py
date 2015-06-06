@@ -1,71 +1,62 @@
 
+"""
+Module to transform geographical coordinates between magnitude transformations
+or geographical projections.
+"""
+
 import numpy as np
 
 
-def transf4compdist(coord, mean_lat=0.71088):
-    """Default location is spain latitude (in rad).
-    Canarias: 0.49445665
-    """
+def general_projection(data, loc_vars, method='ellipsoidal', inverse=False,
+                       radians=False):
+    "General global projection in order to compute distances."
+    coordinates = data.loc[:, loc_vars].as_matrix()
 
-    coord = np.pi/180.*coord
-    coord[:, 0] = coord[:, 0]*np.cos(mean_lat)
-    return coord
+    # Compute to correct magnitude (radians)
+    if not radians:
+        coordinates = degrees2radians(coordinates)
+    ## Projection
+    if method == 'spheroidal':
+        coordinates = spheroidal_projection(coordinates, inverse)
+    elif method == 'ellipsoidal':
+        coordinates = ellipsoidal_projection(coordinates, inverse)
+    # Correction magnitudes if inverse
+    if inverse:
+        coordinates = radians2degrees(coordinates)
 
-
-def transf4compdist_inv(coord, mean_lat=0.71088):
-    """Default location is spain latitude (in rad).
-    Canarias: 0.49445665
-    """
-
-    coord = 180/np.pi*coord
-    coord[:, 0] = coord[:, 0]/np.cos(mean_lat)
-    return coord
-
-
-def transf4compdist_spain(coord, loc_zone='peninsula', inverse=False):
-    """"""
-
-    if loc_zone == 'peninsula':
-        mean_lat = 0.71088
-    elif loc_zone == 'canarias':
-        mean_lat = 0.49446
-    elif loc_zone == 'ceutamelilla':
-        mean_lat = 0.62134
-    if not inverse:
-        coord = transf4compdist(coord, mean_lat)
-    else:
-        coord = transf4compdist_inv(coord, mean_lat)
-
-    return coord
+    return coordinates
 
 
-def transf4compdist_spain_global(data, loc_vars, loc_zone_var, inverse=False):
-    """"""
-
-    loc_zones = ['peninsula', 'canarias', 'ceutamelilla']
-
-    for loc_z in loc_zones:
-        #aux = data[loc_vars][data[loc_zone_var].as_matrix() == loc_z]
-        logi = (data[loc_zone_var] == loc_z).as_matrix()
-        aux = data.loc[logi.reshape(-1), loc_vars]
-        aux = transf4compdist_spain(aux.as_matrix(), loc_z, inverse)
-        #data[loc_vars][logi] = aux
-        data.loc[logi.reshape(-1), loc_vars] = aux
-#
-    return data
+def radians2degrees(coordinates):
+    "Transformation from radians to degrees."
+    return 180./np.pi*coordinates
 
 
-def transf4compdist_global_homo(data, loc_vars, inverse=False):
-    """"""
+def degrees2radians(coordinates):
+    "Transformation from degrees to radians."
+    return np.pi/180.*coordinates
 
-    #aux = data[loc_vars][data[loc_zone_var].as_matrix() == loc_z]
-    if not inverse:
-        data.loc[:, loc_vars] = np.pi/180.*data.loc[:, loc_vars]
-        lats = data.loc[:, loc_vars[1]]
-        data.loc[:, loc_vars[0]] = data.loc[:, loc_vars[0]]*np.cos(lats)
-    else:
-        lats = data.loc[:, loc_vars[1]]
-        data.loc[:, loc_vars] = 180./np.pi*data.loc[:, loc_vars]
-        data.loc[:, loc_vars[0]] = data.loc[:, loc_vars[0]]/np.cos(lats)
 
-    return data
+def spheroidal_projection(coordinates, inverse=False):
+    "Projection under the assumption of spheroidal surface."
+    coordinates[:, 0] = coordinates[:, 0]*np.cos(coordinates[:, 1])
+    coordinates[:, 1] = coordinates[:, 1]
+    return coordinates
+
+
+def ellipsoidal_projection(coordinates, inverse=False):
+    "Projection under the assumption of ellipsoidal surface."
+    ## Constants measured experimentally
+    K11, K12, K13 = 111.13209, -0.56605, 0.00120
+    K21, K22, K23 = 111.41513, -0.09455, 0.00012
+
+    aux0 = coordinates[:, 0]
+    aux1 = coordinates[:, 1]
+    ## Projection
+    aux0 = (K21*np.cos(aux1)+K22*np.cos(3*aux1)+K23*np.cos(5*aux1))*aux0
+    aux1 = (K11+K12*np.cos(2*aux1)+K13*np.cos(4*aux1))*aux1
+
+    coordinates[:, 0] = aux0
+    coordinates[:, 1] = aux1
+
+    return coordinates
