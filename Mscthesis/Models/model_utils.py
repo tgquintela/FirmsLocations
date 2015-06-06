@@ -20,7 +20,7 @@ def filter_with_random_nets(net, random_nets, p_thr):
     for i in range(net.shape[0]):
         for j in range(net.shape[1]):
             bool_net[i, j] = np.sum(net[i, j] < random_nets[i, j, :])/n < p_thr
-    net = net[bool_net]
+    net = net*bool_net
     return net
 
 
