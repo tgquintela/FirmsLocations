@@ -11,6 +11,12 @@ def filtercols_empresas(empresas, filtercolsinfo):
     return empresas
 
 
+def categorize_cols(df):
+    df = cp2str(df)
+    df = cnae2str(df)
+    return df
+
+
 ############################# Particular columns ##############################
 ###############################################################################
 def cp2str(df):

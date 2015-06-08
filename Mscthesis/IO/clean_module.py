@@ -31,7 +31,7 @@ import os
 import time
 
 from aux_functions import parse_xlsx_sheet, write_dataframe
-
+from Mscthesis.Preprocess.preprocess_cols import categorize_cols
 
 ############################## GLOBAL VARIABLES ###############################
 ###############################################################################
@@ -115,6 +115,8 @@ def clean(inpath, outpath, extension='csv'):
     # Correct coordinates
     coords = ['ES-X', 'ES-Y']
     manufacturas[coords] = reformat_coordinates_manu(manufacturas, coords)
+    # Categorize cols
+    manufacturas = categorize_cols(manufacturas)
     # Separate and save
     name = 'Manufactures.xlsx'
     write_dataframe(manufacturas[main_cols], name,
@@ -144,9 +146,13 @@ def clean(inpath, outpath, extension='csv'):
         # Compute extra variables
         apertura = obtain_open_aperture_date(servicios)
         servicios['apertura'] = apertura
+        servicios = compute_close_date_servicios(servicios)
+        ## Categorize cols
+        servicios = categorize_cols(servicios)
         # Separate and save
         write_dataframe(servicios[main_cols], f,
                         join(join(outpath, 'Main'), 'Servicios'), extension)
+        print "Compute %s." % f
         print "Servicios main lasted %f seconds." % (time.time()-t0)
         # Write servicios
         path_fin = join(outpath, 'Finantial')
@@ -155,7 +161,7 @@ def clean(inpath, outpath, extension='csv'):
             y = folders_years[i]
             write_dataframe(servicios[finantial_cols[i]], f,
                             join(join(path_fin, y), 'Servicios'), extension)
-            print "Servicios year %s lasted %f seconds." % (y, time.time()-t0)
+            print "Servicios year %s lasted %f seconds." % (y, time.time()-t0, )
 
 
 def clean_colnames_manu(cols):
@@ -212,6 +218,19 @@ def compute_extra_cols(df):
     extras = pd.concat([aux, cierre], axis=1)
     return extras
 
+def compute_close_date_servicios(servicios):
+    "Compute the close date."
+    f = lambda x: datetime.date(x.year, x.month, x.day)
+    cierre = np.zeros(servicios.shape[0]).astype(datetime.date)
+    bool_c = np.array(servicios['cierre'].isnull())
+    bool_nc = np.logical_not(bool_c)
+    cierre2 = servicios.loc[bool_nc, 'cierre'].astype(datetime.date).apply(f)
+    cierre[bool_c] = obtain_close_date(servicios.loc[bool_c, :])
+    cierre[bool_nc] = np.array(cierre2)
+
+    servicios['cierre'] = cierre
+    return servicios
+
 
 def replace_colnames(cols, replaces):
     "Replace the names keeping the order in the list of colnames."
@@ -241,6 +260,31 @@ def obtain_open_aperture_date(df):
     aux = np.zeros(dates.shape).astype(datetime.date)
     for i in range(aux.shape[0]):
         aux[i] = datetime.date(int(dates[i]), 1, 1)
+    dates = aux
+    return dates
+
+
+def obtain_close_date(df):
+    "Obtain close date"
+    m_y = len(years)
+    ## Obtain bool arrays
+    bool_m = np.zeros((df.shape[0], m_y)).astype(bool)
+    for i in range(m_y):
+        bool_m[:, m_y-1-i] = check_year_open(df, years[i])
+
+    ## Obtain date
+    dates = np.ones(bool_m.shape[0])*m_y
+    for i in range(m_y):
+        logi = bool_m[:, i]
+        dates[np.logical_and(dates == m_y, logi)] = m_y-i-1
+    dates = m_y - dates
+
+    ## Format dates
+    dates = dates + years[0]-1
+    dates = dates.astype(int)
+    aux = np.zeros(dates.shape).astype(datetime.date)
+    for i in range(aux.shape[0]):
+        aux[i] = datetime.datetime(int(dates[i]), 12, 31)
     dates = aux
     return dates
 
