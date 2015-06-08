@@ -4,6 +4,56 @@ from itertools import product, combinations
 import numpy as np
 import networkx as nx
 
+
+#### pjensen 2015-06-08
+
+
+#    def compute_local_measure(self, val_i, vals, n_vals, N_x, bool_extra_out):
+#        """Main function to compute the local descriptor measure of the
+#        desired point.
+#        It returns the part of the measure computed with local information.
+#        """
+#        ## Computation of descriptors
+#        corr_loc_i, counts_i =\
+#            computation_of_counts([vals, val_i, n_vals, N_x])
+#        ## Return counts if it is desired
+#        if bool_extra_out:
+#            return corr_loc_i, counts_i
+#        else:
+#            return corr_loc_i
+
+
+#    def compute_local_descriptors(self, val_i, vals, n_vals, N_x, C, idx_null):
+#        """Function to compute the descriptor for each point individually. It
+#        is usefull for the ML approach in which we have to compute the matrix
+#        of data and we represent each point with the representation desired.
+#        """
+#        ## Computation of descriptors
+#        corr_loc_i, counts_i =\
+#            computation_of_counts([vals, val_i, n_vals, N_x])
+#        ## Transform counts into descriptors
+#        descriptors = np.log10(np.multiply(C, corr_loc_i))
+#        descriptors[idx_null] = 0.
+#        return descriptors
+
+#    def retrieve_and_compute_measure():
+#        """Retrieve the local descriptors and compute the
+#        """
+#        pass
+
+#    def compute_from_descriptors(self, vals, val_i, n_vals, N_x):
+#        """Main function to compute from descriptors aggregated in a file.
+#        """
+#        counts_i = np.sum(vals, axis=0)
+#        corr_loc_i = compute_loc_M_index(counts_i, val_i, n_vals, N_x)
+#        return corr_loc_i
+
+
+
+
+
+####
+
 def computation_neighbourhood(i, df, loc_vars, type_var, type_vals):
     """"""
     indices = get_from_neighbourhood(point, coordinates)

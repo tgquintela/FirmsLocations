@@ -82,6 +82,7 @@ class Model():
     logfile = None
     # Extra information from files
     neighs_dir = None
+    agg_file = None
     agg_file_path = None
     locs_var_agg = None
     types_vars_agg = None
@@ -184,6 +185,7 @@ class Model():
             agg_desc = df2[agg_desc_vars].as_matrix()
         else:
             kdtree = KDTree(locs, leafsize=10000)
+            agg_desc = None
 
         ## 1. Computation of local spatial correlations
         if self.bool_matrix:
