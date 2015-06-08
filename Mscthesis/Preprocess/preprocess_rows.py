@@ -50,7 +50,6 @@ def retrieve_empresas(empresas, coord_filter_nfo, date_filter_nfo):
     if type(empresas) == dict:
         bool_arrays = {}
         for emp in empresas.keys():
-            print emp
             bool_arrays[emp] = retrieve_empresas_d(empresas[emp],
                                                    date_filter_nfo,
                                                    coord_filter_nfo)

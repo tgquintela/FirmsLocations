@@ -78,7 +78,9 @@ class Firms_Parser():
             self.files['raw'] = parentpath
         # Tracking process with logfile
         t00 = time.time()
-        self.logfile.write_log(message0 % (parentpath.split('/')[-1]))
+        globname = parentpath.split('/')
+        globname = globname[-2] if globname[-1] == '' else globname[-1]
+        self.logfile.write_log(message0 % (globname))
         self.logfile.write_log(message1)
         ## 1. Parsing task
         if not self.cleaned:
