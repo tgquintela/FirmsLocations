@@ -70,26 +70,31 @@ class Model():
     - Get and compute descriptors (online/file)
     - Aggregate descriptors (measure dependant)
 
+    ================================
+    TODO:
+    - lim_rows matrix computation (auxiliary folder to save)
+    - ...
+
     """
 
-    ## Class parameters
-    # Process descriptors
-    time_expended = 0.
-    n_procs = 0
-    proc_name = None
-    # Logger info
-    lim_rows = 0
-    logfile = None
-    # Extra information from files
-    neighs_dir = None
-    agg_file_path = None
-    locs_var_agg = None
-    types_vars_agg = None
-    # Bool options
-    bool_agg = False
-    bool_inform = False
-    bool_r_array = False
-    bool_matrix = False
+    ### Class parameters
+    ## Process descriptors
+    time_expended = 0.  # Time expended along the process
+    n_procs = 0  # Number of cpu used in parallelization (0 no parallel)
+    proc_name = None  # Name of the process
+    ## Logger info
+    lim_rows = 0  # Lim of rows done in a bunch. For matrix comp or information
+    logfile = None  # Log file
+    ## Extra information from files
+    neighs_dir = None  # Neighs director if precomputed neighs
+    agg_file_path = None  # aggregate filepath
+    locs_var_agg = None  # locs vars of aggregate file
+    types_vars_agg = None  # descriptors vars of the aggregate file
+    ## Bool options
+    bool_agg = False  # Exists aggregate file
+    bool_inform = False  # Give information of the process
+    bool_r_array = False  # radius as an array
+    bool_matrix = False  # compute matrix
 
     def __init__(self, logfile=None, neighs_dir=None, lim_rows=None,
                  n_procs=None, agg_file_info=None, proc_name=None):
@@ -200,11 +205,14 @@ class Model():
             bool_r_agg = self.ifcompute_aggregate(r)
             ## Obtaining neighs of a given point
             point_i = locs[indices[i], :]
-            neighs = kdtree1.query_ball_point(point_i, r)
+            if bool_r_agg:
+                neighs = kdtree2.query_ball_point(point_i, r)
+            else:
+                neighs = kdtree1.query_ball_point(point_i, r)
             ## Loop over the possible reindices
             for k in range(n_calc):
                 # Retrieve local characterizers
-                if bool_r_agg: # self.bool_agg:
+                if bool_r_agg:  # self.bool_agg:
                     val_i, neighs_k, vals =\
                         get_characterizers(i, k, neighs, type_arr, reindices)
                 else:
@@ -233,7 +241,7 @@ class Model():
     def ifcompute_aggregate(self, r):
         "Function to inform about retrieving aggregation values."
         # self.agg_info
-        return True
+        return self.bool_agg
 
     ###########################################################################
     ######################### Statistic significance ##########################
