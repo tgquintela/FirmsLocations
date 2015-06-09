@@ -55,6 +55,8 @@ def ellipsoidal_projection(coordinates, inverse=False):
     ## Projection
     aux0 = (K21*np.cos(aux1)+K22*np.cos(3*aux1)+K23*np.cos(5*aux1))*aux0
     aux1 = (K11+K12*np.cos(2*aux1)+K13*np.cos(4*aux1))*aux1
+    aux0 = 180./np.pi*aux0
+    aux1 = 180./np.pi*aux1
 
     coordinates[:, 0] = aux0
     coordinates[:, 1] = aux1
