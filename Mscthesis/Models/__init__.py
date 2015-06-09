@@ -82,7 +82,6 @@ class Model():
     logfile = None
     # Extra information from files
     neighs_dir = None
-    agg_file = None
     agg_file_path = None
     locs_var_agg = None
     types_vars_agg = None
@@ -98,7 +97,7 @@ class Model():
         self.logfile = Logger(logfile)
         ## Precomputed aggregated descriptors
         if agg_file_info is not None:
-            self.agg_file_path = agg_file_info['filepath']
+            self.agg_filepath = agg_file_info['filepath']
             self.locs_var_agg = agg_file_info['locs_vars']
             self.types_vars_agg = agg_file_info['type_vars']
             self.bool_agg = True
@@ -153,7 +152,7 @@ class Model():
         ## Bool options
         self.bool_r_array = type(radius) == np.ndarray
         self.bool_inform = True if self.lim_rows is not None else False
-        self.bool_agg = True if self.agg_file else False
+        self.bool_agg = True if self.agg_filepath else False
 
         ## 1. Computation of the measure
         corr_loc = self.compute_mea_sequ_generic(n_vals, n_calc, indices, N_t,
@@ -178,14 +177,13 @@ class Model():
         """
 
         # KDTree retrieve object instantiation
+        kdtree1 = KDTree(locs, leafsize=10000)
+        agg_desc = None
         if self.bool_agg:
             df2 = read_agg(self.agg_file_path)
             loc_vars2, agg_desc_vars = self.locs_var_agg, self.types_vars_agg
-            kdtree = KDTree(df2[loc_vars2].as_matrix(), leafsize=100)
+            kdtree2 = KDTree(df2[loc_vars2].as_matrix(), leafsize=100)
             agg_desc = df2[agg_desc_vars].as_matrix()
-        else:
-            kdtree = KDTree(locs, leafsize=10000)
-            agg_desc = None
 
         ## 1. Computation of local spatial correlations
         if self.bool_matrix:
@@ -199,13 +197,14 @@ class Model():
         for i in xrange(N_t):
             # Check radius
             r = radius[i] if self.bool_r_array else radius
+            bool_r_agg = self.ifcompute_aggregate(r)
             ## Obtaining neighs of a given point
             point_i = locs[indices[i], :]
-            neighs = kdtree.query_ball_point(point_i, r)
+            neighs = kdtree1.query_ball_point(point_i, r)
             ## Loop over the possible reindices
             for k in range(n_calc):
                 # Retrieve local characterizers
-                if self.bool_agg:
+                if bool_r_agg: # self.bool_agg:
                     val_i, neighs_k, vals =\
                         get_characterizers(i, k, neighs, type_arr, reindices)
                 else:
@@ -227,6 +226,14 @@ class Model():
                 self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
                 t0 = time.time()
         return corr_loc
+
+    ###########################################################################
+    ############################## Aggregation ################################
+    ###########################################################################
+    def ifcompute_aggregate(self, r):
+        "Function to inform about retrieving aggregation values."
+        # self.agg_info
+        return True
 
     ###########################################################################
     ######################### Statistic significance ##########################
