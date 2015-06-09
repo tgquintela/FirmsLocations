@@ -32,6 +32,12 @@ import time
 
 from aux_functions import parse_xlsx_sheet, write_dataframe
 from Mscthesis.Preprocess.preprocess_cols import categorize_cols
+from Mscthesis.Preprocess.comp_complementary_data import \
+    average_position_by_cp, counting_type_by_cp
+from Mscthesis.Preprocess.preprocess_general import concat_empresas
+from parse_data import parse_empresas
+from preparation_module import prepare_concatinfo
+
 
 ############################## GLOBAL VARIABLES ###############################
 ###############################################################################
@@ -59,16 +65,29 @@ def aggregate_by_mainvar(parentfolder, agg_var, loc_vars, type_var=None):
     # Concat info
     concatinfo = prepare_concatinfo()
     # Concat
-    empresas = concat_empresas(empresas, concatinfo)
+    empresas = concat_empresas(empresas, **concatinfo)
+    # categorize
+    empresas = categorize_cols(empresas)
     ## Aggregation
     positions = average_position_by_cp(empresas, agg_var, loc_vars)
     if type_var is not None:
         types = counting_type_by_cp(empresas, agg_var, type_var)
-        df = pd.concat([positions, types])
-        cols = {'types': types.columns, 'positions': positions.columns}
+        df = pd.concat([positions, types], axis=1)
+        cols = {'types': list(types.columns)}
+        cols['positions'] = list(positions.columns)
     else:
         df = positions
-        cols = {'positions': positions.columns}
+        cols = {'positions': list(positions.columns)}
+
+    ## Write dataframe
+    if not exists(join(parentfolder, 'Aggregated')):
+        os.mkdir(join(parentfolder, 'Aggregated'))
+    if not exists(join(join(parentfolder, 'Aggregated'), 'Agg_by_'+agg_var)):
+        os.mkdir(join(join(parentfolder, 'Aggregated'), 'Agg_by_'+agg_var))
+
+    write_dataframe(df, 'table_agg',
+                    join(join(parentfolder, 'Aggregated'), 'Agg_by_'+agg_var),
+                    'csv')
     return df, cols
 
 
@@ -161,7 +180,7 @@ def clean(inpath, outpath, extension='csv'):
             y = folders_years[i]
             write_dataframe(servicios[finantial_cols[i]], f,
                             join(join(path_fin, y), 'Servicios'), extension)
-            print "Servicios year %s lasted %f seconds." % (y, time.time()-t0, )
+            print "Servicios year %s lasted %f seconds." % (y, time.time()-t0)
 
 
 def clean_colnames_manu(cols):
@@ -217,6 +236,7 @@ def compute_extra_cols(df):
     ## Concat
     extras = pd.concat([aux, cierre], axis=1)
     return extras
+
 
 def compute_close_date_servicios(servicios):
     "Compute the close date."
