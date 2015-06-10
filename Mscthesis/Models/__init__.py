@@ -87,7 +87,7 @@ class Model():
     logfile = None  # Log file
     ## Extra information from files
     neighs_dir = None  # Neighs director if precomputed neighs
-    agg_file_path = None  # aggregate filepath
+    agg_filepath = None  # aggregate filepath
     locs_var_agg = None  # locs vars of aggregate file
     types_vars_agg = None  # descriptors vars of the aggregate file
     ## Bool options
@@ -157,7 +157,7 @@ class Model():
         ## Bool options
         self.bool_r_array = type(radius) == np.ndarray
         self.bool_inform = True if self.lim_rows is not None else False
-        self.bool_agg = True if self.agg_filepath else False
+        self.bool_agg = True if self.agg_filepath is not None else False
 
         ## 1. Computation of the measure
         corr_loc = self.compute_mea_sequ_generic(n_vals, n_calc, indices, N_t,
@@ -185,7 +185,7 @@ class Model():
         kdtree1 = KDTree(locs, leafsize=10000)
         agg_desc = None
         if self.bool_agg:
-            df2 = read_agg(self.agg_file_path)
+            df2 = read_agg(self.agg_filepath)
             loc_vars2, agg_desc_vars = self.locs_var_agg, self.types_vars_agg
             kdtree2 = KDTree(df2[loc_vars2].as_matrix(), leafsize=100)
             agg_desc = df2[agg_desc_vars].as_matrix()
@@ -207,6 +207,7 @@ class Model():
             point_i = locs[indices[i], :]
             if bool_r_agg:
                 neighs = kdtree2.query_ball_point(point_i, r)
+                print neighs
             else:
                 neighs = kdtree1.query_ball_point(point_i, r)
             ## Loop over the possible reindices
@@ -214,11 +215,12 @@ class Model():
                 # Retrieve local characterizers
                 if bool_r_agg:  # self.bool_agg:
                     val_i, neighs_k, vals =\
-                        get_characterizers(i, k, neighs, type_arr, reindices)
-                else:
-                    val_i, neighs_k, vals =\
                         get_characterizers(i, k, neighs, type_arr, reindices,
                                            agg_desc)
+                else:
+                    val_i, neighs_k, vals =\
+                        get_characterizers(i, k, neighs, type_arr, reindices)
+
                 # Computation of the local measure
                 corr_loc_i = self.compute_descriptors(vals, val_i, n_vals,
                                                       **global_nfo_desc)
@@ -340,10 +342,16 @@ def init_measure_compute(df, type_var, loc_vars, radius, permuts):
 def get_characterizers(i, k, neighs, type_arr, reindices, type_arr2=None):
     """Retrieve local characterizers for i and k.
     """
-    val_i = type_arr[reindices[i, k]]
-    neighs_k = reindices[neighs, k]
+    
+    print type_arr2
+
     if type_arr2 is None:
+        val_i = type_arr[reindices[i, k]]
+        neighs_k = reindices[neighs, k]
         vals = type_arr[neighs_k]
     else:
-        vals = type_arr2[neighs_k]
+        val_i = type_arr[reindices[i, k]]
+        neighs_k = neighs
+        #neighs_k = reindices[neighs, k]
+        vals = type_arr2[neighs, :]
     return val_i, neighs_k, vals

@@ -48,7 +48,9 @@ class Pjensen(Model):
                             N_x=None):
         """Compute descriptors, main funtion of the son class.
         """
+        print vals, n_vals
         counts_i = compute_raw_descriptors(vals, n_vals, self.bool_agg)
+        print counts_i
         corr_loc_i = compute_local_descriptors(counts_i, val_i, n_vals, N_x)
 
         if C is not None and idx_null is not None:
