@@ -37,6 +37,7 @@ from Mscthesis.Preprocess.comp_complementary_data import \
 from Mscthesis.Preprocess.preprocess_general import concat_empresas
 from Mscthesis.IO.parse_data import parse_empresas
 from Mscthesis.IO.preparation_module import prepare_concatinfo
+from Mscthesis.IO import Firms_Parser
 
 
 ############################## GLOBAL VARIABLES ###############################
@@ -55,6 +56,16 @@ types_m = ['Act', 'ActC', 'Pasfijo', 'Pasliq', 'Treb', 'Va', 'Vdes']
 check_xlsx = lambda f: f[-5:] == '.xlsx'
 
 
+def aux_transformation(df, lvl=2):
+    "Auxiliar transformation for formatting aggregate data."
+    # categorize
+    df = categorize_cols(df)
+    # Change the cnae code
+    from Mscthesis.Retrieve.cnae_utils import transform_cnae_col
+    df['cnae'] = transform_cnae_col(df['cnae'], lvl)
+    return df
+
+
 def aggregate_by_mainvar(parentfolder, agg_var, loc_vars, type_var=None,
                          ifwrite=True, transformation=lambda x: x):
     """Function to aggregate variables by the selected variable considering a
@@ -63,42 +74,35 @@ def aggregate_by_mainvar(parentfolder, agg_var, loc_vars, type_var=None,
 
     ## Parse with class the structure and return the data
     parser = Firms_Parser(cleaned=True, logfile=join(parentfolder, 'log.log'))
-    empresas = parser.parse(parentfolder, year=2006)
-    # Transformation
-    empresas = transformation(empresas)
-    ## Aggregation
-    positions = average_position_by_cp(empresas, agg_var, loc_vars)
-    if type_var is not None:
-        types = counting_type_by_cp(empresas, agg_var, type_var)
-        df = pd.concat([positions, types], axis=1)
-        cols = {'types': list(types.columns)}
-        cols['positions'] = list(positions.columns)
-    else:
-        df = positions
-        cols = {'positions': list(positions.columns)}
 
-    ## Write dataframe
-    if ifwrite:
-        aggfolder = 'Agg_by_'+agg_var
-        if not exists(join(parentfolder, 'Aggregated')):
-            os.mkdir(join(parentfolder, 'Aggregated'))
-        if not exists(join(join(parentfolder, 'Aggregated'), aggfolder)):
-            os.mkdir(join(join(parentfolder, 'Aggregated'), aggfolder))
+    ## Loop by years
+    for year in years:
+        empresas = parser.parse(parentfolder, year=year)
+        # Transformation
+        empresas = aux_transformation(empresas, 2)
+        ## Aggregation
+        positions = average_position_by_cp(empresas, agg_var, loc_vars)
+        if type_var is not None:
+            types = counting_type_by_cp(empresas, agg_var, type_var)
+            df = pd.concat([positions, types], axis=1)
+            cols = {'types': list(types.columns)}
+            cols['positions'] = list(positions.columns)
+        else:
+            df = positions
+            cols = {'positions': list(positions.columns)}
 
-        write_dataframe(df, 'table_agg',
-                        join(join(parentfolder, 'Aggregated'), aggfolder),
-                        'csv')
-    return df, cols
+        ## Write dataframe
+        if ifwrite:
+            aggfolder = 'Agg_by_'+agg_var
+            if not exists(join(parentfolder, 'Aggregated')):
+                os.mkdir(join(parentfolder, 'Aggregated'))
+            if not exists(join(join(parentfolder, 'Aggregated'), aggfolder)):
+                os.mkdir(join(join(parentfolder, 'Aggregated'), aggfolder))
 
-
-def aux_transformation(df, lvl):
-    "Auxiliar transformation for formatting aggregate data."
-    # categorize
-    df = categorize_cols(df)
-    # Change the cnae code
-    from Mscthesis.Retrieve.cnae_utils import transform_cnae_col
-    df['cnae'] = transform_cnae_col(df['cnae'], lvl)
-    return df
+            write_dataframe(df, 'table_'+str(year),
+                            join(join(parentfolder, 'Aggregated'), aggfolder),
+                            'csv')
+    return cols
 
 
 def clean(inpath, outpath, extension='csv'):
