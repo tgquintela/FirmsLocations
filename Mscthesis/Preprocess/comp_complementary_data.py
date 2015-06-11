@@ -8,6 +8,33 @@ complementary data needed and computed from the known data.
 
 
 import numpy as np
+import pandas as pd
+
+
+def aggregate_by_var(empresas, agg_var, loc_vars, type_vars=None):
+    """Function to aggregate variables by the selected variable considering a
+    properly structured data.
+    """
+    ## Aggregation
+    positions = average_position_by_cp(empresas, agg_var, loc_vars)
+    if type_vars is not None:
+        types = aggregate_by_typevar(empresas, agg_var, type_vars)
+        df, cols = pd.concat([positions, types], axis=1)
+        cols = {'types': cols}
+        cols['positions'] = list(positions.columns)
+    else:
+        df = positions
+        cols = {'positions': list(positions.columns)}
+
+    return df, cols
+
+
+def aggregate_by_typevar(empresas, agg_var, type_vars):
+    "Function to aggregate only by type_var."
+    type_vars = [type_vars] if type(type_vars) != list else type_vars
+    df = counting_type_by_cp(empresas, agg_var, type_vars)
+    cols = list(df.columns)
+    return df, cols
 
 
 def average_position_by_cp(df, cp_var, loc_vars):
@@ -16,16 +43,16 @@ def average_position_by_cp(df, cp_var, loc_vars):
     return table
 
 
-def counting_type_by_cp(df, cp_var, type_var):
+def counting_type_by_cp(df, cp_var, type_vars):
     "Compute the counting of types by "
-    table = df[[cp_var, type_var]].pivot_table(rows=cp_var, cols=type_var,
-                                               aggfunc='count')
+    table = df[[cp_var] + type_vars].pivot_table(rows=cp_var, cols=type_vars,
+                                                 aggfunc='count')
     table = table.fillna(value=0)
     cols = table.columns.get_level_values(1).unique()
     m = len(cols)
     table = table.loc[:, table.columns[:m]]
     table.columns = cols
-    return table
+    return table, cols
 
 
 def std_type_by_cp(df, cp_var, loc_vars):
