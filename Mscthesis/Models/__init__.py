@@ -20,6 +20,8 @@ import time
 from Mscthesis.IO.write_log import Logger
 from Mscthesis.IO.io_aggfile import read_agg
 
+from aux_functions import compute_aggregate_counts, compute_global_counts,\
+    generate_replace
 
 ###############################################################################
 ########### Global variables needed for this module
@@ -119,25 +121,28 @@ class Model():
     ###########################################################################
     ######################## Measure computations #############################
     ###########################################################################
-    def compute_net(self, df, type_var, loc_vars, radius, permuts=None):
+    def compute_net(self, df, type_vars, loc_vars, radius, permuts=None,
+                    agg_var=None):
         """Main function for the computation of the matrix. It acts as a
         wrapper over the compute_measure_all function.
         """
         self.bool_matrix = False
-        net = self.compute_measure_all(df, type_var, loc_vars, radius, permuts)
+        net = self.compute_measure_all(df, type_vars, loc_vars, radius,
+                                       permuts, agg_var)
         return net
 
-    def compute_matrix(self, df, type_var, loc_vars, radius, permuts=None):
+    def compute_matrix(self, df, type_vars, loc_vars, radius, permuts=None,
+                       agg_var=None):
         """Main function for the computation of the matrix. It acts as a
         wrapper over the compute_measure_all function.
         """
         self.bool_matrix = True
-        matrix = self.compute_measure_all(df, type_var, loc_vars, radius,
-                                          permuts)
+        matrix = self.compute_measure_all(df, type_vars, loc_vars, radius,
+                                          permuts, agg_var)
         return matrix
 
-    def compute_measure_all(self, df, type_var, loc_vars, radius,
-                            permuts=None):
+    def compute_measure_all(self, df, type_vars, loc_vars, radius,
+                            permuts=None, agg_var=None):
         """Main function for building the index of the selected model. This
         function acts as swicher between the different possibilities:
         - Parallel from data/neighs/(agg/preagg)
@@ -149,23 +154,31 @@ class Model():
         self.logfile.write_log(message0 % (m_aux0, m_aux1))
         t00 = time.time()
         # Preparing needed vars
-        aux = init_measure_compute(df, type_var, loc_vars, radius, permuts)
+        aux = init_measure_compute(df, type_vars, loc_vars, radius, permuts)
         del permuts
-        type_arr, type_vals, n_vals, N_t, N_x = aux[:5]
-        reindices, n_calc, locs, indices = aux[5:]
+        df, type_vals, n_vals, N_t, N_x = aux[:5]
+        reindices, n_calc, indices = aux[5:]
+        # Type vars as parameters of class
+        self.var_types = {'loc_vars': loc_vars, 'type_vars': type_vars}
+        self.var_types['agg_var'] = agg_var
+        # Reduction of dataframe
+        useful_vars = loc_vars + type_vars
+        if agg_var is not None:
+            useful_vars.append(agg_var)
+        df = df[useful_vars]
 
         ## Bool options
         self.bool_r_array = type(radius) == np.ndarray
         self.bool_inform = True if self.lim_rows is not None else False
         self.bool_agg = True if self.agg_filepath is not None else False
+        self.bool_agg = True if agg_var is not None else False
 
         ## 1. Computation of the measure
-        corr_loc = self.compute_mea_sequ_generic(n_vals, n_calc, indices, N_t,
-                                                 N_x, radius, reindices, locs,
-                                                 type_arr)
+        corr_loc = self.compute_mea_sequ_generic(df, indices, n_vals, N_x,
+                                                 radius, reindices)
 
         ## 2. Building a net (ifs)
-        corr_loc = self.to_complete_measure(corr_loc, n_vals, N_t, N_x, n_calc)
+        corr_loc = self.to_complete_measure(corr_loc, n_vals, N_t, N_x)
 
         ## Closing process
         t_expended = time.time()-t00
@@ -175,26 +188,50 @@ class Model():
 
         return corr_loc, type_vals, N_x
 
-    def compute_mea_sequ_generic(self, n_vals, n_calc, indices, N_t, N_x,
-                                 radius, reindices, locs, type_arr):
+    def compute_mea_sequ_generic(self, df, indices, n_vals, N_x,
+                                 radius, reindices):
         """Main function to perform spatial correlation computation in a
         sequential mode using aggregated information given by a '''''file'''''.
         """
 
+        ## 0. Intialization of needed variables
+        N_t = reindices.shape[0]
+        n_calc = reindices.shape[1]
+        loc_vars = self.var_types['loc_vars']
+        type_vars = self.var_types['type_vars']
+
         # KDTree retrieve object instantiation
+        locs = df[loc_vars].as_matrix().astype(float)
+        ndim = len(locs.shape)
+        locs = locs if ndim == 2 else locs.reshape((N_t, 1))
         kdtree1 = KDTree(locs, leafsize=10000)
         agg_desc = None
         if self.bool_agg:
-            df2 = read_agg(self.agg_filepath)
-            loc_vars2, agg_desc_vars = self.locs_var_agg, self.types_vars_agg
-            kdtree2 = KDTree(df2[loc_vars2].as_matrix(), leafsize=100)
-            agg_desc = df2[agg_desc_vars].as_matrix()
+            agg_var = self.var_types['agg_var']
+            ## TODO: Compute tables
+            agg_desc, axis, locs2 = compute_aggregate_counts(df, agg_var,
+                                                             loc_vars,
+                                                             type_vars,
+                                                             reindices)
+            kdtree2 = KDTree(locs2, leafsize=100)
+            #df2 = read_agg(self.agg_filepath)
+            #loc_vars2, agg_desc_vars = self.locs_var_agg, self.types_vars_agg
+            #kdtree2 = KDTree(df2[loc_vars2].as_matrix(), leafsize=100)
+            #agg_desc = df2[agg_desc_vars].as_matrix()
+
+        # type_arr
+        type_arr = df[type_vars].as_matrix().astype(int)
+        ndim = len(type_arr.shape)
+        type_arr = type_arr if ndim == 2 else type_arr.reshape((N_t, 1))
+        # clean unnecessary
+        del df
 
         ## 1. Computation of local spatial correlations
         if self.bool_matrix:
             corr_loc = []
         else:
-            corr_loc = np.zeros((n_vals, n_vals, n_calc))
+            n_vals0, n_vals1 = self.compute_model_dim(n_vals, N_x)
+            corr_loc = np.zeros((n_vals0, n_vals1, n_calc))
         global_nfo_desc = self.compute_global_info_descriptor(n_vals, N_t, N_x)
         ## Begin to track the process
         t0 = time.time()
@@ -202,25 +239,19 @@ class Model():
         for i in xrange(N_t):
             # Check radius
             r = radius[i] if self.bool_r_array else radius
-            bool_r_agg = self.ifcompute_aggregate(r)
+            self.bool_r_agg = self.ifcompute_aggregate(r)
             ## Obtaining neighs of a given point
             point_i = locs[indices[i], :]
-            if bool_r_agg:
+            if self.bool_r_agg:
                 neighs = kdtree2.query_ball_point(point_i, r)
-                print neighs
             else:
                 neighs = kdtree1.query_ball_point(point_i, r)
+
             ## Loop over the possible reindices
             for k in range(n_calc):
                 # Retrieve local characterizers
-                if bool_r_agg:  # self.bool_agg:
-                    val_i, neighs_k, vals =\
-                        get_characterizers(i, k, neighs, type_arr, reindices,
-                                           agg_desc)
-                else:
-                    val_i, neighs_k, vals =\
-                        get_characterizers(i, k, neighs, type_arr, reindices)
-
+                val_i, vals = self.get_characterizers(i, k, neighs, type_arr,
+                                                      reindices, agg_desc)
                 # Computation of the local measure
                 corr_loc_i = self.compute_descriptors(vals, val_i, n_vals,
                                                       **global_nfo_desc)
@@ -283,25 +314,23 @@ class Model():
 ###############################################################################
 ############################# Auxiliary functions #############################
 ###############################################################################
-def init_measure_compute(df, type_var, loc_vars, radius, permuts):
+def init_measure_compute(df, type_vars, loc_vars, radius, permuts):
     """Auxiliary function to prepare the initialization and preprocess of the
     required input variables.
     """
-    # Values
-    type_vals = list(df[type_var].unique())
-    type_vals = sorted(type_vals)
-    ####### debug:
-    ###rand = np.random.permutation(len(type_vals))
-    ###type_vals = [type_vals[i] for i in rand]
-    #######
-    #type_vals = sorted(type_vals)
-    n_vals = len(type_vals)
-    repl = dict(zip(type_vals, range(n_vals)))
-    cnae_arr = np.array(df[type_var].replace(repl))
+
     # Global stats
     N_t = df.shape[0]
-    N_x = [np.sum(df[type_var] == type_v) for type_v in type_vals]
-    N_x = np.array(N_x)
+    N_x, type_vals = compute_global_counts(df, type_vars)
+    n_vals = [len(type_vals[e]) for e in type_vals.keys()]
+
+    # Replace to save memory
+    repl = generate_replace(type_vals)
+
+    type_arr = np.array(df[type_vars].replace(repl)).astype(int)
+    type_arr = type_arr if len(type_arr) == 2 else type_arr.reshape((N_t, 1))
+    df[type_vars] = type_arr
+
     # Preparing reindices
     reindex = np.array(df.index)
     reindex = reindex.reshape((N_t, 1))
@@ -319,39 +348,15 @@ def init_measure_compute(df, type_var, loc_vars, radius, permuts):
     n_calc = reindices.shape[1]
 
     # Computation of the locations
-    locs = df[loc_vars].as_matrix()
+    #locs = df[loc_vars].as_matrix()
     # indices
     indices = np.array(df.index)
 
-    ## Radius computation (TODO: self.bool_r_array)
-    if type(radius) == float:
-        radius = radius/6371.009
-    elif type(radius) == np.ndarray:
-        radius = radius/6371.009
-    elif type(radius) == str:
-        radius = np.array(df[radius])/6371.009
-
-    output = (cnae_arr, type_vals, n_vals, N_t, N_x, reindices,
-              n_calc, locs, indices)
+    output = (df, type_vals, n_vals, N_t, N_x, reindices,
+              n_calc, indices)
     return output
 
 
 ###########################################################################
 ########################### Auxiliar functions ############################
 ###########################################################################
-def get_characterizers(i, k, neighs, type_arr, reindices, type_arr2=None):
-    """Retrieve local characterizers for i and k.
-    """
-    
-    print type_arr2
-
-    if type_arr2 is None:
-        val_i = type_arr[reindices[i, k]]
-        neighs_k = reindices[neighs, k]
-        vals = type_arr[neighs_k]
-    else:
-        val_i = type_arr[reindices[i, k]]
-        neighs_k = neighs
-        #neighs_k = reindices[neighs, k]
-        vals = type_arr2[neighs, :]
-    return val_i, neighs_k, vals

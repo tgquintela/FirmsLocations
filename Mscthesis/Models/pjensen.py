@@ -17,25 +17,71 @@ from Mscthesis.Models import Model
 ##################################################################
 class Pjensen(Model):
     """
-    Model of spatial correlation inference.
+    Model of spatial correlation inference. This model is the application of
+    the spatial correlation used by P. Jensen [1]
+
+    References
+    ----------
+    .. [1]
+
     """
 
-    def to_complete_measure(self, corr_loc, n_vals, N_t, N_x, n_calc):
-        """Main function to compute the complete normalized measure of pjensen.
+    def to_complete_measure(self, corr_loc, n_vals, N_t, N_x):
+        """Main function to compute the complete normalized measure of pjensen
+        from the matrix of estimated counts.
         """
+        n_vals = n_vals[0]
         C = global_constants_jensen(n_vals, N_t, N_x)
         # Computing the nets
+        n_calc = corr_loc.shape[2]
         net = np.zeros((n_vals, n_vals, n_calc))
         for i in range(n_calc):
-            idx_null = np.logical_or(C == 0, corr_loc[:, :, i] == 0)
+            idx_null = np.logical_or(C == 0, corr_loc[:, :, i] == 0)  # Probably incorrect
             net[:, :, i] = np.log10(np.multiply(C, corr_loc[:, :, i]))
             net[idx_null] = 0.
         return net
 
+    def compute_descriptors(self, vals, val_i, n_vals, C=None, idx_null=None,
+                            N_x=None):
+        """Compute descriptors, main funtion of the son class. It returns the
+        descriptors of the element evaluated by computing from its trivial
+        descriptors and its own type value (val_i).
+        """
+        ## 0. Needed variables transformations
+        n_vals = n_vals[0]
+
+        ## 1. Computation of the descriptors
+        counts_i = compute_raw_descriptors(vals, n_vals, self.bool_agg)
+        corr_loc_i = compute_local_descriptors(counts_i, val_i, n_vals, N_x)
+        # Normalization
+        if C is not None and idx_null is not None:
+            descriptors = np.log10(np.multiply(C, corr_loc_i))
+            descriptors[idx_null] = 0.
+        else:
+            descriptors = corr_loc_i
+        return descriptors
+
+    ###########################################################################
+    ######################## Auxiliar functions corr ##########################
+    ###########################################################################
+    def compute_model_dim(self, n_vals, N_x):
+        """Auxiliar function for computing the dimensions required for the
+        result of the correlation. It is dependant with the model we select.
+        """
+        n_vals0, n_vals1 = n_vals[0], n_vals[0]
+        return n_vals0, n_vals1
+
     def compute_global_info_descriptor(self, n_vals, N_t, N_x):
         """Function which groups in a dict all the needed global information to
-        compute the desired measure.
+        compute the desired measure. This information will be used by the
+        specific model function compute_descriptors.
         """
+
+        ## 0. Needed variables transformations
+        n_vals = n_vals[0]
+        N_x = N_x[N_x.keys()[0]]
+
+        ## 1. Compute variables for compute_descriptors function
         if self.bool_matrix:
             C = global_constants_jensen(n_vals, N_t, N_x)
             idx_null = C == 0
@@ -44,22 +90,26 @@ class Pjensen(Model):
             out = {'N_x': N_x}
         return out
 
-    def compute_descriptors(self, vals, val_i, n_vals, C=None, idx_null=None,
-                            N_x=None):
-        """Compute descriptors, main funtion of the son class.
+    def get_characterizers(self, i, k, neighs, type_arr, reindices,
+                           agg_desc=None):
+        """Retrieve local characterizers for i element and k permutation. It
+        returns the column index in the output matrix correlation (val_i) and
+        trivial descriptors of the neighbourhood (vals). This values are used
+        for the specific model function compute_descriptors.
         """
-        print vals, n_vals
-        counts_i = compute_raw_descriptors(vals, n_vals, self.bool_agg)
-        print counts_i
-        corr_loc_i = compute_local_descriptors(counts_i, val_i, n_vals, N_x)
-
-        if C is not None and idx_null is not None:
-            descriptors = np.log10(np.multiply(C, corr_loc_i))
-            descriptors[idx_null] = 0.
+        if not self.bool_r_agg:  # self.bool_agg:
+            val_i = type_arr[reindices[i, k], 0]
+            neighs_k = reindices[neighs, k]
+            vals = type_arr[neighs_k, :]
         else:
-            descriptors = corr_loc_i
-        return descriptors
+            var = self.var_types['type_vars'][0]
+            val_i = type_arr[reindices[i, k], 0]
+            vals = agg_desc[var][neighs, :, k]
+        return val_i, vals
 
+    ###########################################################################
+    ############################ Quality measure ##############################
+    ###########################################################################
     def compute_quality(self, corr_loc, count_matrix, type_arr, val_type=None):
         "Computation of the quality measure associated to the model."
         Q = compute_quality_measure(corr_loc, count_matrix, type_arr, val_type)
@@ -124,6 +174,7 @@ def global_constants_jensen(n_vals, N_t, N_x):
     which are used as the null model to compare with the local stats.
     """
     ## Building the normalizing constants
+    N_x = N_x[N_x.keys()[0]]
     C = np.zeros((n_vals, n_vals))
     for i in range(n_vals):
         for j in range(n_vals):

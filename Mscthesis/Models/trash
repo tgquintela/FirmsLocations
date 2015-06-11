@@ -5,6 +5,24 @@ import numpy as np
 import networkx as nx
 
 
+#### __init__ 2015-06-11
+def get_characterizers(i, k, neighs, type_arr, reindices,
+                        agg_desc=None):
+    """Retrieve local characterizers for i and k.
+    """
+    if agg_desc is None:
+        val_i = type_arr[reindices[i, k]]
+        neighs_k = reindices[neighs, k]
+        vals = type_arr[neighs_k]
+    else:
+        val_i = type_arr[reindices[i, k]]
+        neighs_k = neighs
+        #neighs_k = reindices[neighs, k]
+        vals = agg_desc[neighs, :]
+    return val_i, neighs_k, vals
+
+
+
 #### pjensen 2015-06-08
 
 
@@ -53,6 +71,63 @@ import networkx as nx
 
 
 ####
+
+
+
+def init_measure_compute(df, type_vars, loc_vars, radius, permuts):
+    """Auxiliary function to prepare the initialization and preprocess of the
+    required input variables.
+    """
+    # Values
+    type_vals = list(df[type_vars].unique())
+    type_vals = sorted(type_vals)
+
+    # Global stats
+    N_t = df.shape[0]
+    N_x = [np.sum(df[type_vars] == type_v) for type_v in type_vals]
+    N_x = np.array(N_x)
+
+    n_vals = len(type_vals)
+    repl = dict(zip(type_vals, range(n_vals)))
+
+    type_arr = np.array(df[type_vars].replace(repl)).astype(int)
+    type_arr = type_arr if len(type_arr) == 2 else type_arr.reshape((N_t, 1))
+
+    # Preparing reindices
+    reindex = np.array(df.index)
+    reindex = reindex.reshape((N_t, 1))
+    if permuts is not None:
+        if type(permuts) == int:
+            permuts = [np.random.permutation(N_t) for i in range(permuts)]
+            permuts = np.vstack(permuts).T
+            bool_ch = len(permuts.shape) == 1
+            permuts = permuts.reshape((N_t, 1)) if bool_ch else permuts
+        n_per = permuts.shape[1]
+        permuts = [reindex[permuts[:, i]] for i in range(n_per)]
+        permuts = np.hstack(permuts)
+    reindex = [reindex] if permuts is None else [reindex, permuts]
+    reindices = np.hstack(reindex)
+    n_calc = reindices.shape[1]
+
+    # Computation of the locations
+    locs = df[loc_vars].as_matrix()
+    # indices
+    indices = np.array(df.index)
+
+    ## Radius computation (TODO: self.bool_r_array)
+    if type(radius) == float:
+        radius = radius/6371.009
+    elif type(radius) == np.ndarray:
+        radius = radius/6371.009
+    elif type(radius) == str:
+        radius = np.array(df[radius])/6371.009
+
+    output = (type_arr, type_vals, n_vals, N_t, N_x, reindices,
+              n_calc, locs, indices)
+    return output
+
+
+
 
 def computation_neighbourhood(i, df, loc_vars, type_var, type_vals):
     """"""
