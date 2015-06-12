@@ -17,7 +17,7 @@ def create_model_report(net, sectors, dirname, reportname):
     if not exists(dirname):
         makedirs(dirname)
     if not exists(join(dirname, reportname)):
-        makedirs(join(dirname, 'Images'))
+        makedirs(join(dirname, reportname))
     if not exists(join(join(dirname, reportname), 'Images')):
         makedirs(join(join(dirname, reportname), 'Images'))
 
@@ -25,7 +25,7 @@ def create_model_report(net, sectors, dirname, reportname):
     fig1 = plot_net_distribution(net, 50)
     fig2 = plot_heat_net(net, sectors)
 
-    fig1.savefig(join(dirname, 'Images'), 'net_hist')
-    fig2.savefig(join(dirname, 'Images'), 'heat_net')
+    fig1.savefig(join(join(dirname, 'Images'), 'net_hist'))
+    fig2.savefig(join(join(dirname, 'Images'), 'heat_net'))
 
     return fig1, fig2
