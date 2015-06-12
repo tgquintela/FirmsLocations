@@ -214,10 +214,6 @@ class Model():
                                                              type_vars,
                                                              reindices)
             kdtree2 = KDTree(locs2, leafsize=100)
-            #df2 = read_agg(self.agg_filepath)
-            #loc_vars2, agg_desc_vars = self.locs_var_agg, self.types_vars_agg
-            #kdtree2 = KDTree(df2[loc_vars2].as_matrix(), leafsize=100)
-            #agg_desc = df2[agg_desc_vars].as_matrix()
 
         # type_arr
         type_arr = df[type_vars].as_matrix().astype(int)
@@ -239,7 +235,7 @@ class Model():
         for i in xrange(N_t):
             # Check radius
             r = radius[i] if self.bool_r_array else radius
-            self.bool_r_agg = self.ifcompute_aggregate(r)
+            self.bool_r_agg = self.ifcompute_aggregate(r, i, kdtree2)
             ## Obtaining neighs of a given point
             point_i = locs[indices[i], :]
             if self.bool_r_agg:
@@ -274,7 +270,7 @@ class Model():
     def ifcompute_aggregate(self, r):
         "Function to inform about retrieving aggregation values."
         # self.agg_info
-        return self.bool_agg
+        return self.bool_agg and r >= 2
 
     ###########################################################################
     ######################### Statistic significance ##########################
