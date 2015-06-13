@@ -99,7 +99,7 @@ class Model():
     bool_matrix = False  # compute matrix
 
     def __init__(self, logfile=None, neighs_dir=None, lim_rows=None,
-                 n_procs=None, agg_file_info=None, proc_name=None):
+                 n_procs=None, agg_file_info=None, proc_name=None, k_neig=0):
         # Logfile
         self.logfile = Logger(logfile)
         ## Precomputed aggregated descriptors
@@ -108,6 +108,10 @@ class Model():
             self.locs_var_agg = agg_file_info['locs_vars']
             self.types_vars_agg = agg_file_info['type_vars']
             self.bool_agg = True
+        if k_neig != 0:
+            self.kneigh = True
+        else:
+            self.kneigh = False
         ## Precomputed neighs
         if neighs_dir is not None:
             self.neighs_dir = neighs_dir
@@ -239,9 +243,12 @@ class Model():
             ## Obtaining neighs of a given point
             point_i = locs[indices[i], :]
             if self.bool_r_agg:
-                neighs = kdtree2.query_ball_point(point_i, r)
+                if not self.kneigh:
+                    neighs = kdtree2.query_ball_point(point_i, r)
+                else:
+                    neighs = kdtree2.query()
             else:
-                neighs = kdtree1.query_ball_point(point_i, r)
+                neighs = kdtree1.query_ball_point(point_i, r)[0][1:]
 
             ## Loop over the possible reindices
             for k in range(n_calc):
