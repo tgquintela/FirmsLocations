@@ -25,7 +25,7 @@ def create_model_report(net, sectors, dirname, reportname):
     fig1 = plot_net_distribution(net, 50)
     fig2 = plot_heat_net(net, sectors)
 
-    fig1.savefig(join(join(dirname, 'Images'), 'net_hist'))
-    fig2.savefig(join(join(dirname, 'Images'), 'heat_net'))
+    fig1.savefig(join(join(join(dirname, reportname), 'Images'), 'net_hist'))
+    fig2.savefig(join(join(join(dirname, reportname), 'Images'), 'heat_net'))
 
     return fig1, fig2
