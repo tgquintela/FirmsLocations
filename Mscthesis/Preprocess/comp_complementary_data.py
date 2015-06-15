@@ -10,6 +10,8 @@ complementary data needed and computed from the known data.
 import numpy as np
 import pandas as pd
 
+from Mscthesis.Retrieve.density_assignation import general_density_assignation
+
 
 def aggregate_by_var(empresas, agg_var, loc_vars, type_vars=None):
     """Function to aggregate variables by the selected variable considering a
@@ -71,3 +73,18 @@ def mean_type_by_cp(df, cp_var, loc_vars):
     table.columns = ['MEAN-X', 'MEAN-Y']
     table = table.fillna(value=0)
     return table
+
+
+def compute_population_data(locs, pop, popvars, parameters):
+    "Function to compute the correspondant population data to each point."
+
+    ## 0. Computation of initial variables
+    locs = np.array(locs)
+    locs_pop = np.array(pop[popvars['loc_vars']])
+    pop_pop = np.array(pop[popvars['pop_vars']])
+
+    ## 1. Computation of assignation to point
+    pop_assignation = general_density_assignation(locs, parameters, pop_pop,
+                                                  locs_pop)
+
+    return pop_assignation
