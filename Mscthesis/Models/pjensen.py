@@ -25,6 +25,17 @@ class Pjensen(Model):
     .. [1]
 
     """
+    #bool_agg
+    #bool_matrix
+    #bool_r_agg
+    #var_types
+    def __init__():
+        if agg_file_info is not None:
+            self.agg_filepath = agg_file_info['filepath']
+            self.locs_var_agg = agg_file_info['locs_vars']
+            self.types_vars_agg = agg_file_info['type_vars']
+            self.bool_agg = True
+        
 
     def to_complete_measure(self, corr_loc, n_vals, N_t, N_x):
         """Main function to compute the complete normalized measure of pjensen
