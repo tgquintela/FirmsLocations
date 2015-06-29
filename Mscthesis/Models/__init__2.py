@@ -98,27 +98,16 @@ class Model():
     bool_r_array = False  # radius as an array
     bool_matrix = False  # compute matrix
 
-#    def __init__(self, logfile=None, neighs_dir=None, lim_rows=None,
-#                 n_procs=None, agg_file_info=None, proc_name=None, k_neig=0):
-
-    def __init__(self, logfile, aggregator, retriever, lim_rows=None,
-                 n_procs=None, proc_name=None):
+    def __init__(self, logfile=None, neighs_dir=None, lim_rows=None,
+                 n_procs=None, agg_file_info=None, proc_name=None, k_neig=0):
         # Logfile
         self.logfile = Logger(logfile)
-        ## Aggregator
-        self.aggregator = aggregator
-        ##############
         ## Precomputed aggregated descriptors
         if agg_file_info is not None:
             self.agg_filepath = agg_file_info['filepath']
             self.locs_var_agg = agg_file_info['locs_vars']
             self.types_vars_agg = agg_file_info['type_vars']
             self.bool_agg = True
-        ##############
-        ## Retriever
-        self.retriever = retriever
-        ###############
-        ## Retriever
         if k_neig != 0:
             self.kneigh = True
         else:
@@ -128,8 +117,6 @@ class Model():
             self.neighs_dir = neighs_dir
             neighs_files = os.listdir(neighs_dir)
             self.neighs_files = [join(neighs_dir, f) for f in neighs_files]
-        ###############
-
         # Other paramters
         self.lim_rows = lim_rows
         self.n_procs = n_procs
@@ -217,70 +204,6 @@ class Model():
         loc_vars = self.var_types['loc_vars']
         type_vars = self.var_types['type_vars']
 
-        self.Neighretriever.define_mainretriever(df, loc_vars)
-        self.Neighretriever.define_aggretriever(self.aggregator, df)
-
-        # type_arr
-        type_arr = df[type_vars].as_matrix().astype(int)
-        ndim = len(type_arr.shape)
-        type_arr = type_arr if ndim == 2 else type_arr.reshape((N_t, 1))
-        # clean unnecessary
-        del df
-
-        ## 1. Computation of local spatial correlations
-        if self.bool_matrix:
-            corr_loc = []
-        else:
-            n_vals0, n_vals1 = self.descriptormodel.compute_model_dim(n_vals, N_x)
-            corr_loc = np.zeros((n_vals0, n_vals1, n_calc))
-        global_nfo_desc = self.descriptormodel.compute_global_info_descriptor(n_vals, N_t, N_x)
-        ## Begin to track the process
-        t0 = time.time()
-        bun = 0
-        for i in xrange(N_t):
-            ## Obtaining neighs of a given point
-            point_i = locs[indices[i], :]
-            neighs, type_n = self.Neighretriever.retrieve_neigh()
-            #############
-
-            ## Loop over the possible reindices
-            for k in range(n_calc):
-
-                # Retrieve local characterizers
-                val_i, vals = self.get_characterizers(i, k, neighs, type_arr,
-                                                      reindices, agg_desc)
-                # Computation of the local measure
-                corr_loc_i = self.compute_descriptors(vals, val_i, n_vals,
-                                                      **global_nfo_desc)
-
-
-                # Aggregation
-                if self.bool_matrix:
-                    corr_loc.append(corr_loc_i)
-                else:
-                    corr_loc[val_i, :, k] += corr_loc_i
-            ## Finish to track this process
-            if self.bool_inform and (i % self.lim_rows) == 0 and i != 0:
-                t_sp = time.time()-t0
-                bun += 1
-                self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
-                t0 = time.time()
-        return corr_loc
-
-
-
-    def compute_mea_sequ_generic(self, df, indices, n_vals, N_x,
-                                 radius, reindices):
-        """Main function to perform spatial correlation computation in a
-        sequential mode using aggregated information given by a '''''file'''''.
-        """
-
-        ## 0. Intialization of needed variables
-        N_t = reindices.shape[0]
-        n_calc = reindices.shape[1]
-        loc_vars = self.var_types['loc_vars']
-        type_vars = self.var_types['type_vars']
-
         # KDTree retrieve object instantiation
         locs = df[loc_vars].as_matrix().astype(float)
         ndim = len(locs.shape)
@@ -326,11 +249,6 @@ class Model():
                     neighs = kdtree2.query()
             else:
                 neighs = kdtree1.query_ball_point(point_i, r)[0][1:]
-
-            #############
-            point_i = locs[indices[i], :]
-            neighs, type_ = Neighretriever.retrieve_neigh()
-            #############
 
             ## Loop over the possible reindices
             for k in range(n_calc):
