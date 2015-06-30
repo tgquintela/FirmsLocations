@@ -23,6 +23,7 @@ from Mscthesis.IO.io_aggfile import read_agg
 from aux_functions import compute_aggregate_counts, compute_global_counts,\
     generate_replace
 
+
 ###############################################################################
 ########### Global variables needed for this module
 ###############################################################################
@@ -50,7 +51,7 @@ m_debug4 = "Computing M-index for k=%s in %f seconds."
 ###############################################################################
 ################################## MAIN CLASS #################################
 ###############################################################################
-class Model():
+class ModelProcess():
     """Abstract class for all the models with common utilities.
     ===============================
     Requirements of a class object:
@@ -87,49 +88,47 @@ class Model():
     ## Logger info
     lim_rows = 0  # Lim of rows done in a bunch. For matrix comp or information
     logfile = None  # Log file
-    ## Extra information from files
-    neighs_dir = None  # Neighs director if precomputed neighs
-    agg_filepath = None  # aggregate filepath
-    locs_var_agg = None  # locs vars of aggregate file
-    types_vars_agg = None  # descriptors vars of the aggregate file
+#    ## Extra information from files
+#    neighs_dir = None  # Neighs director if precomputed neighs
+#    agg_filepath = None  # aggregate filepath
+#    locs_var_agg = None  # locs vars of aggregate file
+#    types_vars_agg = None  # descriptors vars of the aggregate file
     ## Bool options
-    bool_agg = False  # Exists aggregate file
+    #bool_agg = False  # Exists aggregate file
     bool_inform = False  # Give information of the process
     bool_r_array = False  # radius as an array
     bool_matrix = False  # compute matrix
 
-#    def __init__(self, logfile=None, neighs_dir=None, lim_rows=None,
-#                 n_procs=None, agg_file_info=None, proc_name=None, k_neig=0):
-
-    def __init__(self, logfile, aggregator, retriever, lim_rows=None,
-                 n_procs=None, proc_name=None):
+    def __init__(self, logfile, aggregator, retriever, descriptormodel,
+                 lim_rows=None, n_procs=None, proc_name=None):
         # Logfile
         self.logfile = Logger(logfile)
         ## Aggregator
         self.aggregator = aggregator
         ##############
         ## Precomputed aggregated descriptors
-        if agg_file_info is not None:
-            self.agg_filepath = agg_file_info['filepath']
-            self.locs_var_agg = agg_file_info['locs_vars']
-            self.types_vars_agg = agg_file_info['type_vars']
-            self.bool_agg = True
+#        if agg_file_info is not None:
+#            self.agg_filepath = agg_file_info['filepath']
+#            self.locs_var_agg = agg_file_info['locs_vars']
+#            self.types_vars_agg = agg_file_info['type_vars']
+#            self.bool_agg = True
         ##############
         ## Retriever
         self.retriever = retriever
         ###############
         ## Retriever
-        if k_neig != 0:
-            self.kneigh = True
-        else:
-            self.kneigh = False
+#        if k_neig != 0:
+#            self.kneigh = True
+#        else:
+#            self.kneigh = False
         ## Precomputed neighs
-        if neighs_dir is not None:
-            self.neighs_dir = neighs_dir
-            neighs_files = os.listdir(neighs_dir)
-            self.neighs_files = [join(neighs_dir, f) for f in neighs_files]
+#        if neighs_dir is not None:
+#            self.neighs_dir = neighs_dir
+#            neighs_files = os.listdir(neighs_dir)
+#            self.neighs_files = [join(neighs_dir, f) for f in neighs_files]
         ###############
-
+        ## Descriptor model
+        self.descriptormodel = descriptormodel
         # Other paramters
         self.lim_rows = lim_rows
         self.n_procs = n_procs
@@ -187,15 +186,16 @@ class Model():
         ## Bool options
         self.bool_r_array = type(radius) == np.ndarray
         self.bool_inform = True if self.lim_rows is not None else False
-        self.bool_agg = True if self.agg_filepath is not None else False
-        self.bool_agg = True if agg_var is not None else False
+#        self.bool_agg = True if self.agg_filepath is not None else False
+#        self.bool_agg = True if agg_var is not None else False
 
         ## 1. Computation of the measure
         corr_loc = self.compute_mea_sequ_generic(df, indices, n_vals, N_x,
                                                  radius, reindices)
 
         ## 2. Building a net (ifs)
-        corr_loc = self.to_complete_measure(corr_loc, n_vals, N_t, N_x)
+        corr_loc = self.descriptormodel.to_complete_measure(corr_loc, n_vals,
+                                                            N_t, N_x)
 
         ## Closing process
         t_expended = time.time()-t00
@@ -217,13 +217,14 @@ class Model():
         loc_vars = self.var_types['loc_vars']
         type_vars = self.var_types['type_vars']
 
-        self.Neighretriever.define_mainretriever(df, loc_vars)
-        self.Neighretriever.define_aggretriever(self.aggregator, df)
+        self.retriever.define_mainretriever(df, loc_vars)
+        self.retriever.define_aggretriever(self.aggregator, df, reindices)
 
+        locs = df[loc_vars]
         # type_arr
         type_arr = df[type_vars].as_matrix().astype(int)
         ndim = len(type_arr.shape)
-        type_arr = type_arr if ndim == 2 else type_arr.reshape((N_t, 1))
+        type_arr = type_arr if ndim > 1 else type_arr.reshape((N_t, 1))
         # clean unnecessary
         del df
 
@@ -231,29 +232,29 @@ class Model():
         if self.bool_matrix:
             corr_loc = []
         else:
-            n_vals0, n_vals1 = self.descriptormodel.compute_model_dim(n_vals, N_x)
+            n_vals0, n_vals1 = self.descriptormodel.model_dim
             corr_loc = np.zeros((n_vals0, n_vals1, n_calc))
-        global_nfo_desc = self.descriptormodel.compute_global_info_descriptor(n_vals, N_t, N_x)
+        global_nfo_desc =\
+            self.descriptormodel.compute_global_info_descriptor(n_vals, N_t,
+                                                                N_x)
         ## Begin to track the process
         t0 = time.time()
         bun = 0
         for i in xrange(N_t):
             ## Obtaining neighs of a given point
             point_i = locs[indices[i], :]
-            neighs, type_n = self.Neighretriever.retrieve_neigh()
-            #############
-
             ## Loop over the possible reindices
             for k in range(n_calc):
-
                 # Retrieve local characterizers
-                val_i, vals = self.get_characterizers(i, k, neighs, type_arr,
-                                                      reindices, agg_desc)
+                val_i, vals =\
+                    self.descriptormodel.get_characterizers(i, k, type_arr,
+                                                            point_i, reindices,
+                                                            self.retriever)
                 # Computation of the local measure
-                corr_loc_i = self.compute_descriptors(vals, val_i, n_vals,
-                                                      **global_nfo_desc)
-
-
+                corr_loc_i =\
+                    self.descriptormodel.compute_descriptors(vals, val_i,
+                                                             n_vals,
+                                                             **global_nfo_desc)
                 # Aggregation
                 if self.bool_matrix:
                     corr_loc.append(corr_loc_i)
@@ -266,100 +267,6 @@ class Model():
                 self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
                 t0 = time.time()
         return corr_loc
-
-
-
-    def compute_mea_sequ_generic(self, df, indices, n_vals, N_x,
-                                 radius, reindices):
-        """Main function to perform spatial correlation computation in a
-        sequential mode using aggregated information given by a '''''file'''''.
-        """
-
-        ## 0. Intialization of needed variables
-        N_t = reindices.shape[0]
-        n_calc = reindices.shape[1]
-        loc_vars = self.var_types['loc_vars']
-        type_vars = self.var_types['type_vars']
-
-        # KDTree retrieve object instantiation
-        locs = df[loc_vars].as_matrix().astype(float)
-        ndim = len(locs.shape)
-        locs = locs if ndim == 2 else locs.reshape((N_t, 1))
-        kdtree1 = KDTree(locs, leafsize=10000)
-        agg_desc = None
-        if self.bool_agg:
-            agg_var = self.var_types['agg_var']
-            ## TODO: Compute tables
-            agg_desc, axis, locs2 = compute_aggregate_counts(df, agg_var,
-                                                             loc_vars,
-                                                             type_vars,
-                                                             reindices)
-            kdtree2 = KDTree(locs2, leafsize=100)
-
-        # type_arr
-        type_arr = df[type_vars].as_matrix().astype(int)
-        ndim = len(type_arr.shape)
-        type_arr = type_arr if ndim == 2 else type_arr.reshape((N_t, 1))
-        # clean unnecessary
-        del df
-
-        ## 1. Computation of local spatial correlations
-        if self.bool_matrix:
-            corr_loc = []
-        else:
-            n_vals0, n_vals1 = self.compute_model_dim(n_vals, N_x)
-            corr_loc = np.zeros((n_vals0, n_vals1, n_calc))
-        global_nfo_desc = self.compute_global_info_descriptor(n_vals, N_t, N_x)
-        ## Begin to track the process
-        t0 = time.time()
-        bun = 0
-        for i in xrange(N_t):
-            # Check radius
-            r = radius[i] if self.bool_r_array else radius
-            self.bool_r_agg = self.ifcompute_aggregate(r, i, kdtree2)
-            ## Obtaining neighs of a given point
-            point_i = locs[indices[i], :]
-            if self.bool_r_agg:
-                if not self.kneigh:
-                    neighs = kdtree2.query_ball_point(point_i, r)
-                else:
-                    neighs = kdtree2.query()
-            else:
-                neighs = kdtree1.query_ball_point(point_i, r)[0][1:]
-
-            #############
-            point_i = locs[indices[i], :]
-            neighs, type_ = Neighretriever.retrieve_neigh()
-            #############
-
-            ## Loop over the possible reindices
-            for k in range(n_calc):
-                # Retrieve local characterizers
-                val_i, vals = self.get_characterizers(i, k, neighs, type_arr,
-                                                      reindices, agg_desc)
-                # Computation of the local measure
-                corr_loc_i = self.compute_descriptors(vals, val_i, n_vals,
-                                                      **global_nfo_desc)
-                # Aggregation
-                if self.bool_matrix:
-                    corr_loc.append(corr_loc_i)
-                else:
-                    corr_loc[val_i, :, k] += corr_loc_i
-            ## Finish to track this process
-            if self.bool_inform and (i % self.lim_rows) == 0 and i != 0:
-                t_sp = time.time()-t0
-                bun += 1
-                self.logfile.write_log(message2a % (bun, self.lim_rows, t_sp))
-                t0 = time.time()
-        return corr_loc
-
-    ###########################################################################
-    ############################## Aggregation ################################
-    ###########################################################################
-    def ifcompute_aggregate(self, r):
-        "Function to inform about retrieving aggregation values."
-        # self.agg_info
-        return self.bool_agg and r >= 2
 
     ###########################################################################
     ######################### Statistic significance ##########################
@@ -443,5 +350,26 @@ def init_measure_compute(df, type_vars, loc_vars, radius, permuts):
 
 
 ###########################################################################
-########################### Auxiliar functions ############################
+############################ Auxiliar classes #############################
 ###########################################################################
+class DescriptorModel:
+    "General class for descriptor models."
+    ## TODO: size of descriptor array
+    model_dim = (0, 0)  # check compute_descriptors
+
+    def get_characterizers(self, i, k, type_arr, point_i, reindices,
+                           retriever):
+        """Retrieve local characterizers for i element and k permutation. It
+        returns the column index in the output matrix correlation (val_i) and
+        trivial descriptors of the neighbourhood (vals). These values are used
+        for the specific model function compute_descriptors.
+        """
+        ## TODO: val_i computed apart
+        neighs, type_n = self.retriever.retrieve_neigh(point_i)
+        if type_n == 'aggregate':
+            val_i = self.compute_value_i(i, k, type_arr, reindices)
+            desc = retriever.aggretriever[neighs, :, k]
+        else:
+            val_i = self.compute_value_i(i, k, type_arr, reindices)
+            desc = type_arr[reindices[neighs, k], :]
+        return val_i, desc

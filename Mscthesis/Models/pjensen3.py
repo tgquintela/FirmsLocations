@@ -10,12 +10,12 @@ TODO
 """
 
 import numpy as np
-from Mscthesis.Models import DescriptorModel
+from Mscthesis.Models import Model
 
 
 ########### Class for computing index of the model selected
 ##################################################################
-class Pjensen(DescriptorModel):
+class Pjensen(Model):
     """
     Model of spatial correlation inference. This model is the application of
     the spatial correlation used by P. Jensen [1]
@@ -25,15 +25,18 @@ class Pjensen(DescriptorModel):
     .. [1]
 
     """
+    #bool_agg
+    #bool_matrix
+    #bool_r_agg
+    #var_types
+    def __init__():
+        if agg_file_info is not None:
+            self.agg_filepath = agg_file_info['filepath']
+            self.locs_var_agg = agg_file_info['locs_vars']
+            self.types_vars_agg = agg_file_info['type_vars']
+            self.bool_agg = True
+        
 
-    def __init__(self, n_vals):
-        "The inputs are the needed to compute model_dim."
-        self.n_vals = n_vals
-        self.model_dim = self.compute_model_dim(n_vals, None)
-
-    ###########################################################################
-    ####################### Compulsary main functions #########################
-    ###########################################################################
     def to_complete_measure(self, corr_loc, n_vals, N_t, N_x):
         """Main function to compute the complete normalized measure of pjensen
         from the matrix of estimated counts.
@@ -72,6 +75,13 @@ class Pjensen(DescriptorModel):
     ###########################################################################
     ######################## Auxiliar functions corr ##########################
     ###########################################################################
+    def compute_model_dim(self, n_vals, N_x):
+        """Auxiliar function for computing the dimensions required for the
+        result of the correlation. It is dependant with the model we select.
+        """
+        n_vals0, n_vals1 = n_vals[0], n_vals[0]
+        return n_vals0, n_vals1
+
     def compute_global_info_descriptor(self, n_vals, N_t, N_x):
         """Function which groups in a dict all the needed global information to
         compute the desired measure. This information will be used by the
@@ -91,19 +101,22 @@ class Pjensen(DescriptorModel):
             out = {'N_x': N_x}
         return out
 
-    ###########################################################################
-    ######################## Auxiliar class functions #########################
-    ###########################################################################
-    def compute_value_i(self, i, k, type_arr, reindices):
-        val_i = type_arr[reindices[i, k], :]
-        return val_i
-
-    def compute_model_dim(self, n_vals, N_x):
-        """Auxiliar function for computing the dimensions required for the
-        result of the correlation. It is dependant with the model we select.
+    def get_characterizers(self, i, k, neighs, type_arr, reindices,
+                           agg_desc=None):
+        """Retrieve local characterizers for i element and k permutation. It
+        returns the column index in the output matrix correlation (val_i) and
+        trivial descriptors of the neighbourhood (vals). This values are used
+        for the specific model function compute_descriptors.
         """
-        n_vals0, n_vals1 = n_vals[0], n_vals[0]
-        return n_vals0, n_vals1
+        if not self.bool_r_agg:  # self.bool_agg:
+            val_i = type_arr[reindices[i, k], 0]
+            neighs_k = reindices[neighs, k]
+            vals = type_arr[neighs_k, :]
+        else:
+            var = self.var_types['type_vars'][0]
+            val_i = type_arr[reindices[i, k], 0]
+            vals = agg_desc[var][neighs, :, k]
+        return val_i, vals
 
     ###########################################################################
     ############################ Quality measure ##############################
