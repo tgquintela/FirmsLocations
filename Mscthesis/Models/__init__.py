@@ -1,27 +1,21 @@
 
 """
-Module which contains mains functions and abstract classes used in the
-Supermodule Models.
+Module which contains the abstract classes used in the
+Supermodule Models and the process to apply model used to a particular data.
 """
 
 from model_utils import filter_with_random_nets
 from Mscthesis.IO.model_report import create_model_report
 from os.path import join
-import os
 import shelve
 
 import networkx as nx
 import numpy as np
-from scipy.spatial import KDTree
 
 import multiprocessing as mp
 import time
 
 from Mscthesis.IO.write_log import Logger
-from Mscthesis.IO.io_aggfile import read_agg
-
-from aux_functions import compute_aggregate_counts, compute_global_counts,\
-    generate_replace
 
 
 ###############################################################################
@@ -301,52 +295,6 @@ class ModelProcess():
         database['N_t'] = N_t
         database['N_x'] = N_x
         database.close()
-
-
-###############################################################################
-############################# Auxiliary functions #############################
-###############################################################################
-def init_measure_compute(df, type_vars, loc_vars, radius, permuts):
-    """Auxiliary function to prepare the initialization and preprocess of the
-    required input variables.
-    """
-
-    # Global stats
-    N_t = df.shape[0]
-    N_x, type_vals = compute_global_counts(df, type_vars)
-    n_vals = [len(type_vals[e]) for e in type_vals.keys()]
-
-    # Replace to save memory
-    repl = generate_replace(type_vals)
-
-    type_arr = np.array(df[type_vars].replace(repl)).astype(int)
-    type_arr = type_arr if len(type_arr) == 2 else type_arr.reshape((N_t, 1))
-    df[type_vars] = type_arr
-
-    # Preparing reindices
-    reindex = np.array(df.index)
-    reindex = reindex.reshape((N_t, 1))
-    if permuts is not None:
-        if type(permuts) == int:
-            permuts = [np.random.permutation(N_t) for i in range(permuts)]
-            permuts = np.vstack(permuts).T
-            bool_ch = len(permuts.shape) == 1
-            permuts = permuts.reshape((N_t, 1)) if bool_ch else permuts
-        n_per = permuts.shape[1]
-        permuts = [reindex[permuts[:, i]] for i in range(n_per)]
-        permuts = np.hstack(permuts)
-    reindex = [reindex] if permuts is None else [reindex, permuts]
-    reindices = np.hstack(reindex)
-    n_calc = reindices.shape[1]
-
-    # Computation of the locations
-    #locs = df[loc_vars].as_matrix()
-    # indices
-    indices = np.array(df.index)
-
-    output = (df, type_vals, n_vals, N_t, N_x, reindices,
-              n_calc, indices)
-    return output
 
 
 ###########################################################################

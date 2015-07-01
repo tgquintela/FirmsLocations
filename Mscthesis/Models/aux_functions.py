@@ -8,8 +8,58 @@ useful for compute the models.
 """
 
 import numpy as np
-from Mscthesis.Preprocess.comp_complementary_data import \
-    average_position_by_cp, counting_type_by_cp
+
+
+###############################################################################
+############################# Auxiliary functions #############################
+###############################################################################
+def init_measure_compute(df, type_vars, loc_vars, radius, permuts):
+    """Auxiliary function to prepare the initialization and preprocess of the
+    required input variables.
+    """
+
+    # Global stats
+    N_t = df.shape[0]
+    N_x, type_vals = compute_global_counts(df, type_vars)
+    n_vals = [len(type_vals[e]) for e in type_vals.keys()]
+
+    # Replace to save memory
+    repl = generate_replace(type_vals)
+
+    type_arr = np.array(df[type_vars].replace(repl)).astype(int)
+    type_arr = type_arr if len(type_arr) == 2 else type_arr.reshape((N_t, 1))
+    df[type_vars] = type_arr
+
+    # Preparing reindices
+    reindices = reindices_creation(df, permuts)
+    n_calc = reindices.shape[1]
+
+    # Computation of the locations
+    # indices
+    indices = np.array(df.index)
+
+    output = (df, type_vals, n_vals, N_t, N_x, reindices,
+              n_calc, indices)
+    return output
+
+
+def reindices_creation(df, permuts):
+    "Function to create reindices for permuting elements of the array."
+    N_t = df.shape[0]
+    reindex = np.array(df.index)
+    reindex = reindex.reshape((N_t, 1))
+    if permuts is not None:
+        if type(permuts) == int:
+            permuts = [np.random.permutation(N_t) for i in range(permuts)]
+            permuts = np.vstack(permuts).T
+            bool_ch = len(permuts.shape) == 1
+            permuts = permuts.reshape((N_t, 1)) if bool_ch else permuts
+        n_per = permuts.shape[1]
+        permuts = [reindex[permuts[:, i]] for i in range(n_per)]
+        permuts = np.hstack(permuts)
+    reindex = [reindex] if permuts is None else [reindex, permuts]
+    reindices = np.hstack(reindex)
+    return reindices
 
 
 def compute_global_counts(df, type_vars):
@@ -39,28 +89,3 @@ def generate_replace(type_vals):
     for v in type_vals.keys():
         repl[v] = dict(zip(type_vals[v], range(len(type_vals[v]))))
     return repl
-
-
-def compute_aggregate_counts(df, agg_var, loc_vars, type_vars, reindices):
-    ## Compute the tables
-    locs = average_position_by_cp(df, agg_var, loc_vars)
-    agg_values = list(locs.index)
-    locs = locs.as_matrix()
-
-    tables = {}
-    axis = {}
-    for col in type_vars:
-        n_vals = df[col].unique().shape[0]
-        aux = np.zeros((len(agg_values), n_vals, reindices.shape[1]))
-        for i in range(reindices.shape[1]):
-            # The type values
-            aux_df = df.loc[:, [agg_var]+type_vars]
-            aux2 = aux_df[type_vars].reindex(reindices[:, i]).as_matrix()
-            aux_df[type_vars] = aux2
-            table, cols = counting_type_by_cp(aux_df, agg_var, type_vars)
-            aux[:, :, i] = table.as_matrix()
-
-        tables[col] = aux
-        axis[col] = {'rows': agg_values, 'columns': cols}
-
-    return tables, axis, locs
