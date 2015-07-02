@@ -13,9 +13,9 @@ TODO:
 
 import numpy as np
 import pandas as pd
-from Mscthesis.IO.io_aggfile import read_agg
-from comp_complementary_data import compute_aggregate_counts,\
-    compute_aggregate_counts_grid
+from itertools import product
+#from Mscthesis.IO.io_aggfile import read_agg
+from comp_complementary_data import compute_aggregate_counts
 
 
 class Aggregator():
@@ -24,10 +24,10 @@ class Aggregator():
     def __init__(self, filepath=None, typevars=None, vals=None):
         if filepath is None:
             typevars = format_typevars(typevars)
+            self.vals = vals
             self.typevars = typevars
             self.bool_read_agg = False
         else:
-            self.vals = vals
             self.bool_read_agg = True
             typevars = format_typevars(typevars)
             self.typevars = typevars
@@ -40,12 +40,12 @@ class Aggregator():
             agglocs, aggfeatures = read_aggregation(filepath, typevars)
         else:
             ## Correct inputs
-            locs = df[self.typevars['loc_vars']]
-            feat_arr = df[self.typevars['feat_vars']]
+            locs = df[self.typevars['loc_vars']].as_matrix()
+            feat_arr = df[self.typevars['feat_vars']].as_matrix()
             if self.typevars['agg_var'] is None:
                 agg_arr = None
             else:
-                agg_arr = df[self.typevars['agg_var']]
+                agg_arr = df[self.typevars['agg_var']].as_matrix()
             if reindices is None:
                 N_t = locs.shape[0]
                 reindices = np.array(range(N_t)).reshape((N_t, 1))
@@ -53,7 +53,8 @@ class Aggregator():
                 feat_arr = feat_arr.reshape(feat_arr.shape[0], 1)
             ## Compute agglocs and aggfeatures
             agglocs, aggfeatures = create_aggregation(locs, agg_arr, feat_arr,
-                                                      reindices, self.vals)
+                                                      reindices, self.vals,
+                                                      self.typevars)
         ## Format output
         agglocs = np.array(agglocs)
         ndim, N_t = len(agglocs.shape), agglocs.shape[0]
@@ -61,13 +62,18 @@ class Aggregator():
         return agglocs, aggfeatures
 
 
-def create_aggregation(locs, agg_arr, feat_arr, reindices, vals=None):
+def create_aggregation(locs, agg_arr, feat_arr, reindices, vals=None,
+                       typevars=None):
     "Create aggregation."
     if agg_arr is None:
         agg_arr = map_multivars2key(locs, vals=vals)
-    agg_var = 'agg'
-    loc_vars = [chr(97+i) for i in range(locs.shape[1])]
-    feat_vars = [str(i) for i in range(feat_arr.shape[1])]
+        typevars['agg_var'] = 'agglocs'
+
+    typevars = format_typevars(typevars, locs.shape[1], feat_arr.shape[1])
+
+    agg_var = typevars['agg_var']
+    feat_vars, loc_vars = typevars['feat_vars'], typevars['loc_vars']
+
     df1 = pd.DataFrame(locs, columns=loc_vars)
     df2 = pd.DataFrame(agg_arr, columns=[agg_var])
     df3 = pd.DataFrame(feat_arr, columns=feat_vars)
@@ -75,21 +81,6 @@ def create_aggregation(locs, agg_arr, feat_arr, reindices, vals=None):
     agg_desc, axis, locs = compute_aggregate_counts(df, agg_var, loc_vars,
                                                     feat_vars, reindices)
     return locs, agg_desc
-
-
-#def create_aggregation(locs, agg_arr, feat_arr, reindices):
-#    if agg_arr is None:
-#        locs, agg_desc = compute_aggregate_counts_grid(locs, feat_arr,
-#                                                       reindices)
-#    else:
-#        agg_var = 'agg'
-#        loc_vars = [chr(97+i) for i in range(locs.shape[1])]
-#        feat_vars = [str(i) for i in range(feat_arr.shape[1])]
-#        variables = loc_vars + [agg_var] + feat_vars
-#        df = pd.DataFrame([locs, agg_arr, feat_arr], columns=variables)
-#        agg_desc, axis, locs = compute_aggregate_counts(df, agg_var, loc_vars,
-#                                                        feat_vars, reindices)
-#    return locs, agg_desc
 
 
 def read_aggregation(filepath, typevars):
@@ -100,8 +91,14 @@ def read_aggregation(filepath, typevars):
     return agglocs, aggfeatures
 
 
-def format_typevars(typevars):
+def format_typevars(typevars, locs_dim=None, feats_dim=None):
     "Check typevars."
+    if typevars is None:
+        agg_var = 'agg'
+        loc_vars = [chr(97+i) for i in range(locs_dim)]
+        feat_vars = [str(i) for i in range(feats_dim)]
+        typevars = {'feat_vars': feat_vars, 'loc_vars': loc_vars,
+                    'agg_var': agg_var}
     if 'agg_var' not in typevars.keys():
         typevars['agg_var'] = None
     return typevars

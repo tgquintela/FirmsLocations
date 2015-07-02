@@ -23,7 +23,7 @@ from Mscthesis.Retrieve.density_assignation import general_density_assignation
 ###############################################################################
 def compute_aggregate_counts(df, agg_var, loc_vars, type_vars, reindices):
     ## Compute the tables
-    locs = average_position_by_cp(df, agg_var, loc_vars)
+    locs = average_position_by_aggvar(df, agg_var, loc_vars)
     agg_values = list(locs.index)
     locs = locs.as_matrix()
 
@@ -37,7 +37,7 @@ def compute_aggregate_counts(df, agg_var, loc_vars, type_vars, reindices):
             aux_df = df.loc[:, [agg_var]+type_vars]
             aux2 = aux_df[type_vars].reindex(reindices[:, i]).as_matrix()
             aux_df[type_vars] = aux2
-            table, cols = counting_type_by_cp(aux_df, agg_var, type_vars)
+            table, cols = counting_type_by_aggvar(aux_df, agg_var, type_vars)
             aux[:, :, i] = table.as_matrix()
 
         tables[col] = aux
@@ -89,7 +89,7 @@ def aggregate_by_var(empresas, agg_var, loc_vars, type_vars=None):
     properly structured data.
     """
     ## Aggregation
-    positions = average_position_by_cp(empresas, agg_var, loc_vars)
+    positions = average_position_by_aggvar(empresas, agg_var, loc_vars)
     if type_vars is not None:
         types = aggregate_by_typevar(empresas, agg_var, type_vars)
         df, cols = pd.concat([positions, types], axis=1)
@@ -105,20 +105,20 @@ def aggregate_by_var(empresas, agg_var, loc_vars, type_vars=None):
 def aggregate_by_typevar(empresas, agg_var, type_vars):
     "Function to aggregate only by type_var."
     type_vars = [type_vars] if type(type_vars) != list else type_vars
-    df = counting_type_by_cp(empresas, agg_var, type_vars)
+    df = counting_type_by_aggvar(empresas, agg_var, type_vars)
     cols = list(df.columns)
     return df, cols
 
 
-def average_position_by_cp(df, cp_var, loc_vars):
+def average_position_by_aggvar(df, aggvar, loc_vars):
     "Compute the pivot table to assign to cp a geographic coordinates."
-    table = df.pivot_table(values=loc_vars, rows=cp_var, aggfunc=np.mean)
+    table = df.pivot_table(values=loc_vars, rows=aggvar, aggfunc=np.mean)
     return table
 
 
-def counting_type_by_cp(df, cp_var, type_vars):
+def counting_type_by_aggvar(df, aggvar, type_vars):
     "Compute the counting of types by "
-    table = df[[cp_var] + type_vars].pivot_table(rows=cp_var, cols=type_vars,
+    table = df[[aggvar] + type_vars].pivot_table(rows=aggvar, cols=type_vars,
                                                  aggfunc='count')
     table = table.fillna(value=0)
     cols = table.columns.get_level_values(1).unique()
@@ -128,18 +128,18 @@ def counting_type_by_cp(df, cp_var, type_vars):
     return table, cols
 
 
-def std_type_by_cp(df, cp_var, loc_vars):
+def std_type_by_aggvar(df, aggvar, loc_vars):
     "Compute the counting of types by "
-    table = df.pivot_table(rows=cp_var, values=loc_vars,
+    table = df.pivot_table(rows=aggvar, values=loc_vars,
                            aggfunc=np.std)
     table = table.fillna(value=0)
     table.columns = ['STD-X', 'STD-Y']
     return table
 
 
-def mean_type_by_cp(df, cp_var, loc_vars):
+def mean_type_by_aggvar(df, aggvar, loc_vars):
     "Compute the counting of types by "
-    table = df.pivot_table(rows=cp_var, values=loc_vars,
+    table = df.pivot_table(rows=aggvar, values=loc_vars,
                            aggfunc=np.mean)
     table.columns = ['MEAN-X', 'MEAN-Y']
     table = table.fillna(value=0)

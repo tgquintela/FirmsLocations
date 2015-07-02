@@ -1,0 +1,48 @@
+
+
+
+
+
+
+
+#def create_aggregation(locs, agg_arr, feat_arr, reindices):
+#    if agg_arr is None:
+#        locs, agg_desc = compute_aggregate_counts_grid(locs, feat_arr,
+#                                                       reindices)
+#    else:
+#        agg_var = 'agg'
+#        loc_vars = [chr(97+i) for i in range(locs.shape[1])]
+#        feat_vars = [str(i) for i in range(feat_arr.shape[1])]
+#        variables = loc_vars + [agg_var] + feat_vars
+#        df = pd.DataFrame([locs, agg_arr, feat_arr], columns=variables)
+#        agg_desc, axis, locs = compute_aggregate_counts(df, agg_var, loc_vars,
+#                                                        feat_vars, reindices)
+#    return locs, agg_desc
+
+
+###__init__
+class Aggregator():
+    "Aggregate or read aggregate information."
+
+    def __init__(self, typevars, filepath=None):
+        self.typevars = typevars
+        if filepath is None:
+            self.bool_read_agg = False
+        else:
+            self.bool_read_agg = True
+
+    def retrieve_aggregation(self, df=None, reindices=None):
+        "Main function for retrieving aggregation."
+        if self.bool_read_agg:
+            typevars, filepath = self.typevars, self.filepath
+            aggfeatures, agglocs = read_aggregation(typevars, filepath)
+        else:
+            typevars = self.typevars
+            aggfeatures, agglocs = create_aggregation(df, typevars, reindices)
+        ## Format output
+        agglocs = np.array(agglocs)
+        ndim, N_t = len(agglocs.shape), agglocs.shape[0]
+        agglocs = agglocs if ndim > 1 else agglocs.reshape((N_t, 1))
+        return agglocs, aggfeatures
+
+
