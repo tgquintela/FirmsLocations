@@ -46,68 +46,33 @@ def compute_aggregate_counts(df, agg_var, loc_vars, type_vars, reindices):
     return tables, axis, locs
 
 
-def compute_aggregate_counts_grid(locs_grid, feat_arr, reindices):
-    "Define the aggretriever information."
-    # locs_grid, reindices, feat_arr
-    from itertools import product
-    u1, u2 = np.unique(locs_grid[:, 0]), np.unique(locs_grid[:, 1])
-    N_calc = reindices.shape[1]
-    n_vals = []
-    for i in range(feat_arr.shape[1]):
-        n_vals.append(np.unique(feat_arr[:, i]).shape[0])
-    agglocs, aggfeatures = [], []
-    for p in product(u1, u2):
-        ## Function to check if it is all equal
-        logi = locs_grid == p
-        logi = np.logical_and(logi[:, 0], logi[:, 1])
-        if logi.sum() > 0:
-            ## Computation of counts for each permutation in a given cell p
-            auxM = []
-            for j in range(N_calc):
-                idxs = reindices[:, j]
-                aux = computation_aggregate_collapse_i(feat_arr[idxs[logi], :],
-                                                       n_vals)
-                aux = aux.reshape(aux.shape[0], 1)
-                auxM.append(aux)
-            ## Prepare outputs
-            agglocs.append(p)
-            auxM = np.concatenate(auxM, axis=1)
-            auxM = auxM.reshape(auxM.shape[0], auxM.shape[1], 1)
-            aggfeatures.append(auxM)
-    ## Format output
-    aggfeatures = np.concatenate(aggfeatures, axis=2)
-    aggfeatures = np.swapaxes(np.concatenate(aggfeatures, axis=2), 2, 1)
-    agglocs = np.array(agglocs)
-    return agglocs, aggfeatures
-
-
 ###############################################################################
 ############################ Auxiliar counts by var ###########################
 ###############################################################################
-def aggregate_by_var(empresas, agg_var, loc_vars, type_vars=None):
+def aggregate_by_var(df, agg_var, loc_vars, type_vars=None):
     """Function to aggregate variables by the selected variable considering a
     properly structured data.
     """
     ## Aggregation
-    positions = average_position_by_aggvar(empresas, agg_var, loc_vars)
+    positions = average_position_by_aggvar(df, agg_var, loc_vars)
     if type_vars is not None:
-        types = aggregate_by_typevar(empresas, agg_var, type_vars)
-        df, cols = pd.concat([positions, types], axis=1)
+        types = aggregate_by_typevar(df, agg_var, type_vars)
+        df_agg, cols = pd.concat([positions, types], axis=1)
         cols = {'types': cols}
         cols['positions'] = list(positions.columns)
     else:
-        df = positions
+        df_agg = positions
         cols = {'positions': list(positions.columns)}
 
-    return df, cols
+    return df_agg, cols
 
 
-def aggregate_by_typevar(empresas, agg_var, type_vars):
+def aggregate_by_typevar(df, agg_var, type_vars):
     "Function to aggregate only by type_var."
     type_vars = [type_vars] if type(type_vars) != list else type_vars
-    df = counting_type_by_aggvar(empresas, agg_var, type_vars)
+    df_agg = counting_type_by_aggvar(df, agg_var, type_vars)
     cols = list(df.columns)
-    return df, cols
+    return df_agg, cols
 
 
 def average_position_by_aggvar(df, aggvar, loc_vars):
