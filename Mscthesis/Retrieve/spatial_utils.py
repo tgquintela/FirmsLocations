@@ -14,15 +14,15 @@ def mapping2grid(locs, grid_size, xlim=(None, None), ylim=(None, None)):
     "Main function to map a group of points in a 2d to a grid."
 
     ## 1. Grid creation
-    x, ycreate_grid(locs, grid_size, xlim, ylim)
+    x, y = create_grid(locs, grid_size, xlim, ylim)
     xv, yv = np.meshgrid(x, y)
 
     ## 2. Application of the grid
-    locs_agg_grid = grid_application(locs, x, y)
+    locs_agg_grid = apply_grid(locs, x, y)
     return locs_agg_grid, xv, yv
 
 
-def create_grid(locs, grid_size, xlim=(None, None), ylim=(None, None)):
+def create_grid(grid_size, locs=None, xlim=(None, None), ylim=(None, None)):
     ## 0. Preparation needed variables
     nx, ny = grid_size
     xmin, xmax = xlim

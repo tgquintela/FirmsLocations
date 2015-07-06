@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 import numpy as np
 
 
-def density_assignation(locs, parameters, values=None, locs2=None):
+def general_density_assignation(locs, parameters, values=None, locs2=None):
     "Density assignation function."
 
     # Creation of the kdtree for retrieving neighs

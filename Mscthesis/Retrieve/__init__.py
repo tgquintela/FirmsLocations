@@ -4,6 +4,10 @@ Module oriented to compute neighbourhood.
 """
 
 
+from scipy.spatial.distance import cdist
+from scipy.spatial import KDTree
+
+
 class Neighbourhood():
     """
     Retrieve neighs.
@@ -11,185 +15,109 @@ class Neighbourhood():
     aggretriever = None
     retriever = None
     aggfeatures = None
+    agglocs = None
 
-    def define_aggretriever(self, aggregator, df, reindices):
-        "Define the aggregation and its retriever."
-        ##### TODO: Reindices
-        self.aggfeatures, agglocs = aggregator.retrieve_aggregation(df)
-        agglocs = np.array(agglocs)
-        ndim, N_t = len(agglocs.shape), agglocs.shape[0]
-        agglocs = agglocs if ndim > 1 else agglocs.reshape((N_t, 1))
-        self.aggretriever = KDTree(agglocs, leafsize=100)
+    cond_funct = lambda x, y, z: False
 
-    def define_mainretriever(self, df, loc_vars):
-        "Define the main retriever."
-        locs = df[loc_vars].as_matrix().astype(float)
-        ndim = len(locs.shape)
-        locs = locs if ndim > 1 else locs.reshape((N_t, 1))
+    def __init__(self, retriever):
+        self.define_mainretriever(retriever)
 
-        self.retriever = KDTree(locs, leafsize=10000)
+    def define_mainretriever(self, retriever):
+        self.retriever = retriever
 
-    def retrieve_neigh(self, point_i):
+    def define_aggretrievers(self, aggregators, df, reindices, funct=None):
+        if type(aggregators) != list:
+            aggregators = [aggregators]
+        n_agg = len(aggregators)
+        agglocs, aggfeatures, aggretriever = [], [], []
+        for i in range(n_agg):
+            agg = aggregators[i]
+            auxlocs, auxfeatures = agg.retrieve_aggregation(df, reindices,
+                                                            funct)
+            agglocs.append(auxlocs)
+            aggfeatures.append(auxfeatures)
+            aggretriever.append(agg.discretizor)
+        self.agglocs = agglocs
+        self.aggfeatures = aggfeatures
+        self.aggretriever = aggretriever
+
+    def retrieve_neigh(self, point_i, cond_i, info_i):
         """Retrieve the neighs information and the type of retrieving.
         Type of retrieving:
         - aggfeatures: aggregate
         - indices of neighs: neighs_i
         """
+        point_i = point_i.reshape(1, point_i.shape[0])
+        typereturn = self.get_type_return(point_i, cond_i)
+        if typereturn:
+            neighbourhood = self.retrieve_neighs_agg(point_i, info_i)
+        else:
+            neighbourhood = self.retrieve_neighs_i(point_i, info_i)
+        typereturn = 'aggregate' if typereturn else 'individual'
         return neighbourhood, typereturn
 
+    def retrieve_neighs_agg(self, point_i, info_i):
+        "Retrieve the correspondent regions."
+        out = []
+        for i in range(len(self.aggretriever)):
+            out.append(self.aggretriever.map2id(point_i))
+        return out
+
+    def retrieve_neighs_i(self, point_i, info_i):
+        "Retrieve the neighs."
+        return self.retriever.retrieve_neighs(point_i, info_i)
+
     ###########################################################################
-    ############################## Aggregation ################################
+    ########################## Condition aggregation ##########################
     ###########################################################################
-    ## TODEPRECATE
-    def ifcompute_aggregate(self, r):
-        "Function to inform about retrieving aggregation values."
-        # self.agg_info
-        return self.bool_agg and r >= 2
+    def set_aggcondition(self, f):
+        "Setting condition function for aggregate data retrieval."
+        self.cond_funct = f
 
-
-class GridNeigh(Neighbourhood):
-    """Neighbourhood grid-based object. It is an static retriever. This means
-    that all the computations queries can be retrieved the aggregate values.
-    """
-
-    def __init__(self, locs, grid_size, xlim=(None, None), ylim=(None, None)):
-        "Main function to map a group of points in a 2d to a grid."
-        ## TODO: locs not needed.
-        self.create_grid(locs, grid_size, xlim, ylim)
-
-    def create_grid(self, locs, grid_size, xlim=(None, None),
-                    ylim=(None, None)):
-        self.x, self.y = create_grid(locs, grid_size, xlim, ylim)
-
-    def apply_grid(self, locs):
-        locs_grid = apply_grid(locs, self.x, self.y)
-        return locs_grid
-
-    def retrieve_neighs_sclass(self, point_i):
-        ## Transform point_i in grid coords
-        ## Retrieve the coordinates with same grid
-        pass
-
-    def define_aggretriever_spec(self, aggregator, df, reindices):
-        ""
-        _, aggfeatures = aggregator.retrieve_aggregation(locs_grid, None,
-                                                         feat_arr, reindices)
-        self.aggretriever, self.aggfeatures = locs_grid, aggfeatures
+    def get_type_return(self, point_i, cond_i):
+        "Apply condition setted."
+        ## TODO: Add the possibility to not be in aggregate and return False
+        return self.cond_funct(point_i, cond_i)
 
 
 ###############################################################################
-############################### Grid functions ################################
+################################# Retrievers ##################################
 ###############################################################################
-def aggretrieve_grid(point_i, agglocs, aggfeatures):
-    neighs = retrieve_aggneighs(point_i, agglocs)
-    feats = aggretrieve_vals(neighs, aggfeatures)
-    return feats
+class Retriever():
+    "Class which contains the retriever of points."
+
+    def __init__(self, locs):
+        self.retriever = self.define_retriever(locs)
+
+    def retrieve_neighs(self, point_i, info_i, ifdistance=False):
+        self.retrieve_neighs_spec(point_i, info_i, ifdistance)
 
 
-def retrieve_aggneighs(point_i, agglocs):
-    "Retrieve aggregate neighs."
-    logi = agglocs == point_i
-    return logi
+class KRetriever(Retriever):
+    "Class which contains a retriever of K neighbours."
+
+    def define_retriever(self, locs):
+        leafsize = locs.shape[0]
+        leafsize = locs.shape[0]/100 if leafsize > 1000 else leafsize
+        return KDTree(locs, leafsize=leafsize)
+
+    def retrieve_neighs_spec(self, point_i, info_i, ifdistance=False):
+        res = self.retriever.query(point_i, info_i)
+        if not ifdistance:
+            res = res[1]
+        return res
 
 
-def aggretrieve_vals(neighs, aggfeatures):
-    # agglocs are unique locations
-    if logi.sum() == 0:
-        feats = np.zeros(aggfeatures.shape[1])
-    else:
-        feats = aggfeatures[logi, :]
-    return feats
+class CircRetriever(Retriever):
+    "Circular retriever."
+    def define_retriever(self, locs):
+        leafsize = locs.shape[0]
+        leafsize = locs.shape[0]/100 if leafsize > 1000 else leafsize
+        return KDTree(locs, leafsize=leafsize)
 
-
-
-        self.aggfeatures, agglocs = aggregator.retrieve_aggregation(df)
-        agglocs = np.array(agglocs)
-        ndim, N_t = len(agglocs.shape), agglocs.shape[0]
-        agglocs = agglocs if ndim > 1 else agglocs.reshape((N_t, 1))
-        self.aggretriever = KDTree(agglocs, leafsize=100)
-
-
-class CircularNeigh(Neighbourhood):
-    """General Neighbourhood for circular considerations. It could have
-    variable radius.
-    """
-    def __init__(self, radius):
-        self.radius = radius
-        self.retriever = None
-
-    def define_mainretriever(self, locs):
-        "Define the main retriever."
-        ndim = len(locs.shape)
-        locs = locs if ndim > 1 else locs.reshape((N_t, 1))
-        self.retriever = KDTree(locs, leafsize=10000)
-
-    def define_aggretriever(self, aggregator, df, reindices):
-        "Define the aggregation and its retriever."
-        ##### TODO: Reindices
-        self.aggfeatures, agglocs = aggregator.retrieve_aggregation(df)
-        agglocs = np.array(agglocs)
-        ndim, N_t = len(agglocs.shape), agglocs.shape[0]
-        agglocs = agglocs if ndim > 1 else agglocs.reshape((N_t, 1))
-        self.aggretriever = KDTree(agglocs, leafsize=100)
-
-    def create_aggretriever(self, locs):
-        "Creation of the aggretriever."
-
-        agg_desc = None
-        if self.bool_agg:
-            agg_var = self.var_types['agg_var']
-            ## TODO: Compute tables
-            agg_desc, axis, locs2 = compute_aggregate_counts(df, agg_var,
-                                                             loc_vars,
-                                                             type_vars,
-                                                             reindices)
-            kdtree2 = KDTree(locs2, leafsize=100)
-
-        # type_arr
-        type_arr = df[type_vars].as_matrix().astype(int)
-        ndim = len(type_arr.shape)
-        type_arr = type_arr if ndim == 2 else type_arr.reshape((N_t, 1))
-        # clean unnecessary
-        del df
-
-
-###############################################################################
-############################# Circular functions ##############################
-###############################################################################
-def define_aggretriever_circ(aggregator, locs_grid, type_arr, reindices):
-    "Define the aggretriever information."
-    # locs_grid, reindices, type_arr
-    agglocs, aggfeatures = aggregator.retrieve_aggregation(locs_grid, None,
-                                                           type_arr, reindices)
-    aggretriever = KDTree(agglocs, leafsize=100)
-    return aggretriever, aggfeatures
-
-
-def aggretrieve_grid(point_i, agglocs, aggfeatures):
-    neighs = retrieve_aggneighs(point_i, agglocs)
-    feats = aggretrieve_vals(neighs, aggfeatures)
-    return feats
-
-
-def retrieve_aggneighs(point_i, agglocs):
-    "Retrieve aggregate neighs."
-    aggneighs = agglocs.query_ball(point_i, self.r)
-    return aggneighs
-
-
-def aggretrieve_vals(neighs, aggfeatures):
-    # agglocs are unique locations
-    if logi.sum() == 0:
-        feats = np.zeros(aggfeatures.shape[1])
-    else:
-        feats = aggfeatures[logi, :]
-    return feats
-
-
-
-
-class KNeigh(Neighbourhood):
-    "General neighbourhood composed by a fixed number of neighbours."
-
-    def __init__(self, k):
-        self.k = k
+    def retrieve_neighs_spec(self, point_i, info_i, ifdistance=False):
+        res = self.retriever.query_ball_point(point_i, info_i)
+        if ifdistance:
+            aux = cdist(point_i, self.retriever.data[res, :])
+            res = aux, res
+        return res
