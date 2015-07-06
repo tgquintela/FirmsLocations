@@ -211,8 +211,10 @@ class ModelProcess():
         loc_vars = self.var_types['loc_vars']
         type_vars = self.var_types['type_vars']
 
+        #######
         self.retriever.define_mainretriever(df, loc_vars)
         self.retriever.define_aggretriever(self.aggregator, df, reindices)
+        #######
 
         locs = df[loc_vars]
         # type_arr
@@ -313,7 +315,7 @@ class DescriptorModel:
         for the specific model function compute_descriptors.
         """
         ## TODO: val_i computed apart
-        neighs, type_n = self.retriever.retrieve_neigh(point_i)
+        neighs, type_n = self.retriever.retrieve_neigh(point_i) ## TODO: info_i
         if type_n == 'aggregate':
             val_i = self.compute_value_i(i, k, type_arr, reindices)
             desc = retriever.aggretriever[neighs, :, k]

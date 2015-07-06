@@ -11,6 +11,8 @@ TODO
 
 import numpy as np
 from Mscthesis.Models import DescriptorModel
+from Mscthesis.Preprocess.comp_complementary_data import \
+    compute_aggregate_counts
 
 
 ########### Class for computing index of the model selected
@@ -68,6 +70,13 @@ class Pjensen(DescriptorModel):
         else:
             descriptors = corr_loc_i
         return descriptors
+
+    def compute_aggdescriptors(self, df, agg_var, type_vars, reindices):
+        """Compute aggregate descriptors. It returns the aggregate
+        descriptors for the whole data.
+        """
+        desc, _ = compute_aggregate_counts(df, agg_var, type_vars, reindices)
+        return desc
 
     ###########################################################################
     ######################## Auxiliar functions corr ##########################
