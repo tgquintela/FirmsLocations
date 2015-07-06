@@ -70,6 +70,15 @@ class Aggregator():
         agglocs = agglocs if ndim > 1 else agglocs.reshape((N_t, 1))
         return agglocs, aggfeatures
 
+    def retrieve_aggloc(self, point_i):
+        point_i = point_i.reshape(1, 2)
+        region = self.spatial_disc.map2id(point_i)
+        return region
+
+    def retrieve_agglocs(self, locs):
+        regions = self.spatial_disc.map2id(locs)
+        return regions
+
 
 def create_aggregation(agg_arr, feat_arr, reindices, typevars=None,
                        funct=None):
