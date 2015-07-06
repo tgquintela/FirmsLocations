@@ -7,7 +7,6 @@ processes we want to perform.
 
 TODO:
 -----
-- Accept other functions or descriptors not only count...
 
 """
 
@@ -15,17 +14,16 @@ import numpy as np
 import pandas as pd
 from itertools import product
 #from Mscthesis.IO.io_aggfile import read_aggregation
-from comp_complementary_data import compute_aggregate_counts
+from comp_complementary_data import compute_aggregate_counts,\
+    average_position_by_aggarr
 
 
 class Aggregator():
     "Aggregate or read aggregate information."
 
-    def __init__(self, filepath=None, typevars=None, vals=None,
-                 spatial_disc=None):
+    def __init__(self, filepath=None, typevars=None, spatial_disc=None):
         if filepath is None:
             typevars = format_typevars(typevars)
-            self.vals = vals
             self.typevars = typevars
             self.discretizor = spatial_disc
             self.bool_read_agg = False
@@ -46,15 +44,17 @@ class Aggregator():
             locs = df[self.typevars['loc_vars']].as_matrix()
             feat_arr = df[self.typevars['feat_vars']].as_matrix()
             if self.typevars['agg_var'] is None:
-                if self.discretizor is not None:
-                    ## Check if discretized or to do
-                    if type(self.discretizor) == np.ndarray:
-                        agg_arr = self.discretizor
-                    else:
-                        agg_arr = self.discretizor.discretize(locs)
-                agg_arr = None
+                ## Check if discretized or to do
+                if type(self.discretizor) == np.ndarray:
+                    agg_arr = self.discretizor
+                    agglocs = average_position_by_aggarr(locs, agg_arr)
+                else:
+                    agg_arr = self.discretizor.map2id(locs)
+                    agglocs = self.discretizor.discretize(locs)
+                self.typevars['agg_var'] = 'aggvar'
             else:
                 agg_arr = df[self.typevars['agg_var']].as_matrix()
+                agglocs = average_position_by_aggarr(locs, agg_arr)
             if reindices is None:
                 N_t = locs.shape[0]
                 reindices = np.array(range(N_t)).reshape((N_t, 1))
@@ -62,10 +62,8 @@ class Aggregator():
                 feat_arr = feat_arr.reshape(feat_arr.shape[0], 1)
             ######################################################
             ## Compute agglocs and aggfeatures
-            agglocs, aggfeatures = create_aggregation(locs, agg_arr,
-                                                      feat_arr, reindices,
-                                                      self.vals, self.typevars,
-                                                      funct)
+            aggfeatures = create_aggregation(agg_arr, feat_arr, reindices,
+                                             self.typevars, funct)
         ## Format output
         agglocs = np.array(agglocs)
         ndim, N_t = len(agglocs.shape), agglocs.shape[0]
@@ -73,48 +71,36 @@ class Aggregator():
         return agglocs, aggfeatures
 
 
-def create_aggregation(locs, agg_arr, feat_arr, reindices, vals=None,
-                       typevars=None, funct=None):
+def create_aggregation(agg_arr, feat_arr, reindices, typevars=None,
+                       funct=None):
     "Create aggregation."
 
     ## 0. Formatting inputs
-    if agg_arr is None:
-        agg_arr = map_multivars2key(locs, vals=vals)
-        typevars['agg_var'] = 'agglocs'
-    typevars = format_typevars(typevars, locs.shape[1], feat_arr.shape[1])
-    agg_var = typevars['agg_var']
-    feat_vars, loc_vars = typevars['feat_vars'], typevars['loc_vars']
-    df1 = pd.DataFrame(locs, columns=loc_vars)
-    df2 = pd.DataFrame(agg_arr, columns=[agg_var])
-    df3 = pd.DataFrame(feat_arr, columns=feat_vars)
-    df = pd.concat([df1, df2, df3], axis=1)
+    typevars = format_typevars(typevars, feats_dim=feat_arr.shape[1])
+    feat_vars, agg_var = typevars['feat_vars'], typevars['agg_var']
+    df1 = pd.DataFrame(agg_arr, columns=[agg_var])
+    df2 = pd.DataFrame(feat_arr, columns=feat_vars)
+    df = pd.concat([df1, df2], axis=1)
 
     ## 1. Use specific function or default aggregate counts
-    if funct is not None:
-        agg_desc, axis, locs = compute_aggregate_counts(df, agg_var, loc_vars,
-                                                        feat_vars, reindices)
+    if funct is None:
+        agg_desc, _ = compute_aggregate_counts(df, agg_var, feat_vars,
+                                               reindices)
     else:
-        agg_desc, axis, locs = funct(df, agg_var, loc_vars, feat_vars,
-                                     reindices)
-    return locs, agg_desc
-
-
-def read_aggregation(filepath, typevars):
-    ## TODO
-    aggtable = read_agg(filepath)
-    aggfeatures = aggtable[typevars['feat_vars']]
-    agglocs = aggtable[typevars['loc_vars']]
-    return agglocs, aggfeatures
+        agg_desc = funct(df, agg_var, feat_vars, reindices)
+    return agg_desc
 
 
 def format_typevars(typevars, locs_dim=None, feats_dim=None):
     "Check typevars."
     if typevars is None:
-        agg_var = 'agg'
-        loc_vars = [chr(97+i) for i in range(locs_dim)]
-        feat_vars = [str(i) for i in range(feats_dim)]
-        typevars = {'feat_vars': feat_vars, 'loc_vars': loc_vars,
-                    'agg_var': agg_var}
+        typevars = {'agg_var': 'agg'}
+        if locs_dim is not None:
+            loc_vars = [chr(97+i) for i in range(locs_dim)]
+            typevars['loc_vars'] = loc_vars
+        if feats_dim is not None:
+            feat_vars = [str(i) for i in range(feats_dim)]
+            typevars['feat_vars'] = feat_vars
     if 'agg_var' not in typevars.keys():
         typevars['agg_var'] = None
     return typevars

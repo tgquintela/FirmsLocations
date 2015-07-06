@@ -21,12 +21,9 @@ from Mscthesis.Retrieve.density_assignation import general_density_assignation
 ###############################################################################
 ############################ Main functions counts ############################
 ###############################################################################
-def compute_aggregate_counts(df, agg_var, loc_vars, type_vars, reindices):
+def compute_aggregate_counts(df, agg_var, type_vars, reindices):
     ## Compute the tables
-    locs = average_position_by_aggvar(df, agg_var, loc_vars)
-    agg_values = list(locs.index)
-    locs = locs.as_matrix()
-
+    agg_values = list(np.unique(df[agg_var]))
     tables = {}
     axis = {}
     for col in type_vars:
@@ -43,7 +40,7 @@ def compute_aggregate_counts(df, agg_var, loc_vars, type_vars, reindices):
         tables[col] = aux
         axis[col] = {'rows': agg_values, 'columns': cols}
 
-    return tables, axis, locs
+    return tables, axis
 
 
 ###############################################################################
@@ -77,6 +74,16 @@ def aggregate_by_typevar(df, agg_var, type_vars):
 
 def average_position_by_aggvar(df, aggvar, loc_vars):
     "Compute the pivot table to assign to cp a geographic coordinates."
+    table = df.pivot_table(values=loc_vars, rows=aggvar, aggfunc=np.mean)
+    return table
+
+
+def average_position_by_aggarr(locs, agg_arr):
+    "Compute the pivot table to assign to cp a geographic coordinates."
+    loc_vars, aggvar = ['x', 'y'], 'agg'
+    df = [pd.DataFrame(locs, columns=loc_vars),
+          pd.DataFrame(locs, columns=aggvar)]
+    df = pd.concat(df, axis=1)
     table = df.pivot_table(values=loc_vars, rows=aggvar, aggfunc=np.mean)
     return table
 
