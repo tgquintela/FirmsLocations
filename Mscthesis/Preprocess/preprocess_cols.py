@@ -17,6 +17,14 @@ def categorize_cols(df):
     return df
 
 
+def generate_replace(type_vals):
+    "Generate the replace for use indices and save memory."
+    repl = {}
+    for v in type_vals.keys():
+        repl[v] = dict(zip(type_vals[v], range(len(type_vals[v]))))
+    return repl
+
+
 ############################# Particular columns ##############################
 ###############################################################################
 def cp2str(df):

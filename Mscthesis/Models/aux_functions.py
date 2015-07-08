@@ -13,34 +13,36 @@ import numpy as np
 ###############################################################################
 ############################# Auxiliary functions #############################
 ###############################################################################
-def init_measure_compute(df, type_vars, loc_vars, radius, permuts):
+def init_compl_arrays(df, typevars, info_ret, cond_agg):
     """Auxiliary function to prepare the initialization and preprocess of the
-    required input variables.
+    required input variables in order to format them properly.
     """
-
-    # Global stats
     N_t = df.shape[0]
-    N_x, type_vals = compute_global_counts(df, type_vars)
-    n_vals = [len(type_vals[e]) for e in type_vals.keys()]
 
-    # Replace to save memory
-    repl = generate_replace(type_vals)
+    locs = df[typevars['loc_vars']]
+    feat_arr = df[typevars['feat_vars']]
+    # Extract arrays
+    locs = df[typevars['loc_vars']]
+    ndim = len(locs.shape)
+    locs = locs if ndim > 1 else locs.reshape((N_t, 1))
+    feat_arr = df[typevars['feat_vars']].as_matrix()
+    ndim = len(feat_arr.shape)
+    feat_arr = feat_arr if ndim > 1 else feat_arr.reshape((N_t, 1))
 
-    type_arr = np.array(df[type_vars].replace(repl)).astype(int)
-    type_arr = type_arr if len(type_arr) == 2 else type_arr.reshape((N_t, 1))
-    df[type_vars] = type_arr
+    if type(info_ret) == str:
+        info_ret = df[info_ret].as_matrix()
+    elif type(info_ret) == np.ndarray:
+        info_ret = info_ret
+    elif type(info_ret) in [int, float, bool]:
+        info_ret = (np.ones(df.shape[0])*info_ret).astype(type(info_ret))
+    if type(cond_agg) == str:
+        cond_agg = df[cond_agg].as_matrix()
+    elif type(cond_agg) == np.ndarray:
+        cond_agg = cond_agg
+    elif type(cond_agg) in [int, float, bool]:
+        cond_agg = (np.ones(df.shape[0])*cond_agg).astype(type(cond_agg))
 
-    # Preparing reindices
-    reindices = reindices_creation(df, permuts)
-    n_calc = reindices.shape[1]
-
-    # Computation of the locations
-    # indices
-    indices = np.array(df.index)
-
-    output = (df, type_vals, n_vals, N_t, N_x, reindices,
-              n_calc, indices)
-    return output
+    return locs, feat_arr, info_ret, cond_agg
 
 
 def reindices_creation(df, permuts):

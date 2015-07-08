@@ -16,6 +16,56 @@ from itertools import product
 #from Mscthesis.IO.io_aggfile import read_aggregation
 from comp_complementary_data import compute_aggregate_counts,\
     average_position_by_aggarr
+from preprocess_cols import generate_replace
+
+
+class Firms_Preprocesssor():
+    "Special class to preprocess firms data."
+    projection_values = None
+    map_cnae = None
+    map_indices = None
+
+    ## TODO: map indices
+
+    def __init__(self, typevars):
+        self.typevars = typevars
+
+    def preprocess(self, empresas, cnae_lvl=2, method_proj='ellipsoidal', radians=False):
+        "Function to preprocess firms data."
+        ## 0. Set vars
+        finantial_vars = [e for e in self.typevars['feat_vars'] if e != 'cnae']
+        loc_vars = self.typevars['loc_vars']
+        self.projection_values = [loc_vars, method_proj, True, radians]
+        # 1. Indices
+        self.map_indices = zip(list(df.index), range(df.shape[0]))
+        empresas.index = range(df.shape[0])
+        # 2. Location transformation
+        empresas[loc_vars] = general_projection(empresas, loc_vars,
+                                                method=method_proj,
+                                                inverse=False,
+                                                radians=radians)
+        ## 3. Feature array
+        # cnae variable
+        empresas['cnae'] = transform_cnae_col(empresas['cnae'], cnae_lvl)
+        t_vals = sorted(list(empresas['cnae'].unique()))
+        self.map_cnae = generate_replace(t_vals)
+        empresas['cnae'] = empresas['cnae'].replace(self.map_cnae).astype(int)
+
+        # Finantial variables
+
+        return empresas
+
+    def reverse_preprocess(self, empresas):
+
+        ## 1. Inverse transformation of locations
+        projection_values = self.projection_values
+        empresas[loc_vars] = general_projection(empresas, *projection_values)
+
+        ## 2. Inverse mapping
+        ##TODO
+        return empresas
+
+
 
 
 class Aggregator():

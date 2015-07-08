@@ -17,7 +17,7 @@ class Neighbourhood():
     aggfeatures = None
     agglocs = None
 
-    cond_funct = lambda x, y, z: False
+    cond_funct = lambda xself, xbool: xbool
 
     def __init__(self, retriever):
         self.define_mainretriever(retriever)
@@ -25,21 +25,11 @@ class Neighbourhood():
     def define_mainretriever(self, retriever):
         self.retriever = retriever
 
-    def define_aggretrievers(self, aggregators, df, reindices, funct=None):
-        if type(aggregators) != list:
-            aggregators = [aggregators]
-        n_agg = len(aggregators)
-        agglocs, aggfeatures, aggretriever = [], [], []
-        for i in range(n_agg):
-            agg = aggregators[i]
-            auxlocs, auxfeatures = agg.retrieve_aggregation(df, reindices,
-                                                            funct)
-            agglocs.append(auxlocs)
-            aggfeatures.append(auxfeatures)
-            aggretriever.append(agg.discretizor)
+    def define_aggretrievers(self, agg, df, reindices, funct=None):
+        agglocs, aggfeatures = agg.retrieve_aggregation(df, reindices, funct)
         self.agglocs = agglocs
         self.aggfeatures = aggfeatures
-        self.aggretriever = aggretriever
+        self.aggretriever = agg.discretizor
 
     def retrieve_neigh(self, point_i, cond_i, info_i):
         """Retrieve the neighs information and the type of retrieving.
@@ -48,7 +38,7 @@ class Neighbourhood():
         - indices of neighs: neighs_i
         """
         point_i = point_i.reshape(1, point_i.shape[0])
-        typereturn = self.get_type_return(point_i, cond_i)
+        typereturn = self.get_type_return(cond_i)
         if typereturn:
             neighbourhood = self.retrieve_neighs_agg(point_i, info_i)
         else:
@@ -74,10 +64,10 @@ class Neighbourhood():
         "Setting condition function for aggregate data retrieval."
         self.cond_funct = f
 
-    def get_type_return(self, point_i, cond_i):
+    def get_type_return(self, cond_i):
         "Apply condition setted."
         ## TODO: Add the possibility to not be in aggregate and return False
-        return self.cond_funct(point_i, cond_i)
+        return self.cond_funct(cond_i)
 
 
 ###############################################################################
