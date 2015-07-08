@@ -33,7 +33,7 @@ import time
 from Mscthesis.IO.aux_functions import parse_xlsx_sheet, write_dataframe
 from Mscthesis.Preprocess.preprocess_cols import categorize_cols
 from Mscthesis.Preprocess.comp_complementary_data import \
-    average_position_by_cp, counting_type_by_cp
+    average_position_by_aggvar, counting_type_by_aggvar
 from Mscthesis.Preprocess.preprocess_general import concat_empresas
 from Mscthesis.IO.parse_data import parse_empresas
 from Mscthesis.IO.preparation_module import prepare_concatinfo

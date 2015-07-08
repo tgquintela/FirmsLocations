@@ -100,20 +100,20 @@ class ModelProcess():
     ###########################################################################
     ######################## Measure computations #############################
     ###########################################################################
-    def compute_net(self, df, info_ret=None, cond_agg=None, permuts=None):
+    def compute_net(self, df, info_ret=None, cond_agg=None, reindices=None):
         """Main function for the computation of the matrix. It acts as a
         wrapper over the compute_measure_all function.
         """
         self.bool_matrix = False
-        net = self.compute_measure_all(df, info_ret, cond_agg, permuts)
+        net = self.compute_measure_all(df, info_ret, cond_agg, reindices)
         return net
 
-    def compute_matrix(self, df, info_ret=None, cond_agg=None, permuts=None):
+    def compute_matrix(self, df, info_ret=None, cond_agg=None, reindices=None):
         """Main function for the computation of the matrix. It acts as a
         wrapper over the compute_measure_all function.
         """
         self.bool_matrix = True
-        matrix = self.compute_measure_all(df, info_ret, cond_agg, permuts)
+        matrix = self.compute_measure_all(df, info_ret, cond_agg, reindices)
         return matrix
 
     def compute_measure_all(self, df, info_ret=None, cond_agg=None,
@@ -250,7 +250,7 @@ class DescriptorModel:
         """
         # Retrieve neighs
         info_i, cond_i = info_ret[i], cond_agg[i]
-        neighs, type_n = self.retriever.retrieve_neigh(point_i, cond_i, info_i)
+        neighs, type_n = retriever.retrieve_neigh(point_i, cond_i, info_i)
         # Get vals
         val_i = self.compute_value_i(i, k, feat_arr, reindices)
         vals = self.compute_vals_nei(retriever.aggfeatures, neighs, reindices,

@@ -82,7 +82,7 @@ def average_position_by_aggarr(locs, agg_arr):
     "Compute the pivot table to assign to cp a geographic coordinates."
     loc_vars, aggvar = ['x', 'y'], 'agg'
     df = [pd.DataFrame(locs, columns=loc_vars),
-          pd.DataFrame(locs, columns=aggvar)]
+          pd.DataFrame(agg_arr, columns=[aggvar])]
     df = pd.concat(df, axis=1)
     table = df.pivot_table(values=loc_vars, rows=aggvar, aggfunc=np.mean)
     return table

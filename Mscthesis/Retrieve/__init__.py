@@ -37,7 +37,8 @@ class Neighbourhood():
         - aggfeatures: aggregate
         - indices of neighs: neighs_i
         """
-        point_i = point_i.reshape(1, point_i.shape[0])
+        if len(point_i.shape) == 1:
+            point_i = point_i.reshape(1, point_i.shape[0])
         typereturn = self.get_type_return(cond_i)
         if typereturn:
             neighbourhood = self.retrieve_neighs_agg(point_i, info_i)
@@ -48,9 +49,7 @@ class Neighbourhood():
 
     def retrieve_neighs_agg(self, point_i, info_i):
         "Retrieve the correspondent regions."
-        out = []
-        for i in range(len(self.aggretriever)):
-            out.append(self.aggretriever.map2id(point_i))
+        out = self.aggretriever.map2id(point_i)
         return out
 
     def retrieve_neighs_i(self, point_i, info_i):

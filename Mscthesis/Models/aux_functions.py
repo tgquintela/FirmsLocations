@@ -19,10 +19,8 @@ def init_compl_arrays(df, typevars, info_ret, cond_agg):
     """
     N_t = df.shape[0]
 
-    locs = df[typevars['loc_vars']]
-    feat_arr = df[typevars['feat_vars']]
     # Extract arrays
-    locs = df[typevars['loc_vars']]
+    locs = df[typevars['loc_vars']].as_matrix()
     ndim = len(locs.shape)
     locs = locs if ndim > 1 else locs.reshape((N_t, 1))
     feat_arr = df[typevars['feat_vars']].as_matrix()

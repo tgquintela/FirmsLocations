@@ -25,6 +25,15 @@ def generate_replace(type_vals):
     return repl
 
 
+def transform_cnae_col(cnae_col, lvl):
+    """"""
+    lvl_n = len(cnae_col[1])
+    if lvl >= lvl_n:
+        return cnae_col
+    else:
+        return cnae_col.apply(lambda x: x[:lvl])
+
+
 ############################# Particular columns ##############################
 ###############################################################################
 def cp2str(df):

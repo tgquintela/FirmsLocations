@@ -2,16 +2,20 @@
 
 #from Mscthesis.Retrieve.spatialdiscretizer import GridSpatialDisc
 from Mscthesis.IO import Firms_Parser
-from Mscthesis.Preprocess import Aggregator
+from Mscthesis.Preprocess import Aggregator, Firms_Preprocessor
 from Mscthesis.Retrieve import Neighbourhood, CircRetriever
 from Mscthesis.Models import ModelProcess
 from Mscthesis.Models.pjensen import Pjensen
 
 import numpy as np
 
+from Mscthesis.IO.clean_module import clean
 
 logfile = 'Data/Outputs/Logs/logfile_2015_07_04.log'
-parentpath = '/home/antonio/Desktop/MSc Thesis/code/Data/Outputs/Pruebas'
+parentpath = '/home/tono/mscthesis/code/Data/pruebas_clean'
+inpath = '/home/tono/mscthesis/code/Data/pruebas_raw/raw1'
+
+#clean(inpath, parentpath, extension='csv')
 
 ##parse empresas
 parser = Firms_Parser(cleaned=True, logfile=logfile)
@@ -24,12 +28,13 @@ agg = Aggregator(typevars=typevars)
 
 ## Preprocess
 preprocess = Firms_Preprocessor(typevars)
-empresas = preprocess.apply_preprocess(empresas)
+empresas = preprocess.preprocess(empresas)
 
 ## Define permuts
-permuts = np.zeros((10000, 10))
-for i in range(10):
-    permuts[:, i] = np.random.permutation(np.arange(10000))
+reindices = np.zeros((empresas.shape[0], 11))
+reindices[:, 0] = np.array(range(empresas.shape[0]))
+for i in range(1, 11):
+    reindices[:, i] = np.random.permutation(np.arange(empresas.shape[0]))
 
 ## Define retriever (Neigh has to know typevars)
 locs = empresas[typevars['loc_vars']].as_matrix()
@@ -46,7 +51,6 @@ descriptormodel = Pjensen(empresas, typevars)
 ## Define process
 modelprocess = ModelProcess(logfile, Neigh, descriptormodel, typevars=typevars, lim_rows=100000,
                             proc_name='Test')
-modelprocess.compute_net(empresas, type_vars, loc_vars, radius, permuts=None,
-                         agg_var=None)
+modelprocess.compute_net(empresas, 2., True, reindices)
 
 

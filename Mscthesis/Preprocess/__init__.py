@@ -16,19 +16,21 @@ from itertools import product
 #from Mscthesis.IO.io_aggfile import read_aggregation
 from comp_complementary_data import compute_aggregate_counts,\
     average_position_by_aggarr
-from preprocess_cols import generate_replace
+from preprocess_cols import generate_replace, transform_cnae_col
+from Mscthesis.Geo_tools.geo_transformations import general_projection
 
 
-class Firms_Preprocesssor():
+class Firms_Preprocessor():
     "Special class to preprocess firms data."
     projection_values = None
-    map_cnae = None
+    map_vars = None
     map_indices = None
 
     ## TODO: map indices
 
     def __init__(self, typevars):
         self.typevars = typevars
+        self.map_vars = ['cnae', 'cp']
 
     def preprocess(self, empresas, cnae_lvl=2, method_proj='ellipsoidal', radians=False):
         "Function to preprocess firms data."
@@ -37,20 +39,31 @@ class Firms_Preprocesssor():
         loc_vars = self.typevars['loc_vars']
         self.projection_values = [loc_vars, method_proj, True, radians]
         # 1. Indices
-        self.map_indices = zip(list(df.index), range(df.shape[0]))
-        empresas.index = range(df.shape[0])
+        self.map_indices = zip(list(empresas.index), range(empresas.shape[0]))
+        empresas.index = range(empresas.shape[0])
         # 2. Location transformation
         empresas[loc_vars] = general_projection(empresas, loc_vars,
                                                 method=method_proj,
                                                 inverse=False,
                                                 radians=radians)
         ## 3. Feature array
+        # TODO: temporal line (filter of none values of cp)
+        #logi = empresas['cp'].isnull()
+        #logi = np.logical_not(logi)
+        #empresas = empresas.loc[logi, :]
+        #################################
+        # generate replacement in discrete vars
+        t_vals = {'cnae': sorted(list(empresas['cnae'].unique())),
+                  'cp': sorted(list(empresas['cp'].unique()))}
+        self.map_info = generate_replace(t_vals)
         # cnae variable
-        empresas['cnae'] = transform_cnae_col(empresas['cnae'], cnae_lvl)
-        t_vals = sorted(list(empresas['cnae'].unique()))
-        self.map_cnae = generate_replace(t_vals)
-        empresas['cnae'] = empresas['cnae'].replace(self.map_cnae).astype(int)
-
+        empresas.loc[:, 'cnae'] = transform_cnae_col(empresas['cnae'], cnae_lvl)
+        #empresas['cnae'] = empresas['cnae'].replace(self.map_vars['cnae']).astype(int)
+        # cp variable
+        #empresas.loc[:, 'cp'] = empresas.loc[:, 'cp'].replace(self.map_vars['cp']).astype(int)
+        # Map discrete variables
+        mpvars = self.map_vars
+        empresas.loc[:, mpvars] = empresas.loc[:, mpvars].replace(self.map_info).astype(int)
         # Finantial variables
 
         return empresas
@@ -64,8 +77,6 @@ class Firms_Preprocesssor():
         ## 2. Inverse mapping
         ##TODO
         return empresas
-
-
 
 
 class Aggregator():

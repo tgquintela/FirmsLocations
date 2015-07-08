@@ -64,8 +64,11 @@ def retrieve_empresas_d(empresas, date_filter_nfo, coord_filter_nfo):
     "Retrieve companies which match the conditions given in the parameters."
     bool_dates = retrieve_by_dates(empresas, **date_filter_nfo)
     bool_coord = retrieve_coordinates(empresas, **coord_filter_nfo)
+    ## ACHTUNG: Hardcoded TODO: update class
+    bool_cp = retrieve_cp(empresas)
 
     bool_arrays = np.logical_and(bool_dates, bool_coord)
+    bool_arrays = np.logical_and(bool_arrays, bool_cp)
     return bool_arrays
 
 
@@ -214,6 +217,10 @@ def filter_by_date(servicios, date):
     #servicios = servicios.loc[indices]
     servicios.drop(indices_b)
     return servicios
+
+
+def retrieve_cp(empresas):
+    return np.array(empresas['cp'].isnull())
 
 
 ############################# Filter coordinates ##############################

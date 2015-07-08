@@ -204,6 +204,7 @@ def compute_globalstats(df, typevars):
     counts, counts_info = compute_global_counts(df, feat_vars)
     counts = counts[counts.keys()[0]]
     counts_info = counts_info[counts_info.keys()[0]]
+    counts, counts_info = np.array(counts), np.array(counts_info)
     return counts, counts_info
 
 
