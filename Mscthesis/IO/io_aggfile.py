@@ -12,3 +12,11 @@ def read_agg(filepath):
     table = pd.read_csv(filepath, sep=';')
     table = cp2str(table)
     return table
+
+
+def read_aggregation(filepath, typevars):
+    ## TODO
+    aggtable = read_agg(filepath)
+    aggfeatures = aggtable[typevars['feat_vars']]
+    agglocs = aggtable[typevars['loc_vars']]
+    return agglocs, aggfeatures

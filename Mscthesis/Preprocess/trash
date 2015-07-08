@@ -1,0 +1,128 @@
+
+
+
+
+
+def compute_aggregate_counts_grid(locs_grid, feat_arr, reindices):
+    "Define the aggretriever information."
+    #### TODEPRECATE
+    # locs_grid, reindices, feat_arr
+    from itertools import product
+    u1, u2 = np.unique(locs_grid[:, 0]), np.unique(locs_grid[:, 1])
+    N_calc = reindices.shape[1]
+    n_vals = []
+    for i in range(feat_arr.shape[1]):
+        n_vals.append(np.unique(feat_arr[:, i]).shape[0])
+    agglocs, aggfeatures = [], []
+    for p in product(u1, u2):
+        ## Function to check if it is all equal
+        logi = locs_grid == p
+        logi = np.logical_and(logi[:, 0], logi[:, 1])
+        if logi.sum() > 0:
+            ## Computation of counts for each permutation in a given cell p
+            auxM = []
+            for j in range(N_calc):
+                idxs = reindices[:, j]
+                aux = computation_aggregate_collapse_i(feat_arr[idxs[logi], :],
+                                                       n_vals)
+                aux = aux.reshape(aux.shape[0], 1)
+                auxM.append(aux)
+            ## Prepare outputs
+            agglocs.append(p)
+            auxM = np.concatenate(auxM, axis=1)
+            auxM = auxM.reshape(auxM.shape[0], auxM.shape[1], 1)
+            aggfeatures.append(auxM)
+    ## Format output
+    aggfeatures = np.concatenate(aggfeatures, axis=2)
+    aggfeatures = np.swapaxes(np.concatenate(aggfeatures, axis=2), 2, 1)
+    agglocs = np.array(agglocs)
+    return agglocs, aggfeatures
+
+
+
+class Aggregator():
+    "Aggregate or read aggregate information."
+
+    def __init__(self, filepath=None, typevars=None, vals=None):
+        if filepath is None:
+            typevars = format_typevars(typevars)
+            self.vals = vals
+            self.typevars = typevars
+            self.bool_read_agg = False
+        else:
+            self.bool_read_agg = True
+            typevars = format_typevars(typevars)
+            self.typevars = typevars
+
+    def retrieve_aggregation(self, df=None, reindices=None):
+        "Main function for retrieving aggregation."
+        if self.bool_read_agg:
+            # TODO: Function to read file
+            filepath, typevars = self.filepath, self.typevars
+            agglocs, aggfeatures = read_aggregation(filepath, typevars)
+        else:
+            ## Correct inputs
+            locs = df[self.typevars['loc_vars']].as_matrix()
+            feat_arr = df[self.typevars['feat_vars']].as_matrix()
+            if self.typevars['agg_var'] is None:
+                agg_arr = None
+            else:
+                agg_arr = df[self.typevars['agg_var']].as_matrix()
+            if reindices is None:
+                N_t = locs.shape[0]
+                reindices = np.array(range(N_t)).reshape((N_t, 1))
+            if len(feat_arr.shape) == 1:
+                feat_arr = feat_arr.reshape(feat_arr.shape[0], 1)
+            ## Compute agglocs and aggfeatures
+            agglocs, aggfeatures = create_aggregation(locs, agg_arr, feat_arr,
+                                                      reindices, self.vals,
+                                                      self.typevars)
+        ## Format output
+        agglocs = np.array(agglocs)
+        ndim, N_t = len(agglocs.shape), agglocs.shape[0]
+        agglocs = agglocs if ndim > 1 else agglocs.reshape((N_t, 1))
+        return agglocs, aggfeatures
+
+
+
+#def create_aggregation(locs, agg_arr, feat_arr, reindices):
+#    if agg_arr is None:
+#        locs, agg_desc = compute_aggregate_counts_grid(locs, feat_arr,
+#                                                       reindices)
+#    else:
+#        agg_var = 'agg'
+#        loc_vars = [chr(97+i) for i in range(locs.shape[1])]
+#        feat_vars = [str(i) for i in range(feat_arr.shape[1])]
+#        variables = loc_vars + [agg_var] + feat_vars
+#        df = pd.DataFrame([locs, agg_arr, feat_arr], columns=variables)
+#        agg_desc, axis, locs = compute_aggregate_counts(df, agg_var, loc_vars,
+#                                                        feat_vars, reindices)
+#    return locs, agg_desc
+
+
+###__init__
+class Aggregator():
+    "Aggregate or read aggregate information."
+
+    def __init__(self, typevars, filepath=None):
+        self.typevars = typevars
+        if filepath is None:
+            self.bool_read_agg = False
+        else:
+            self.bool_read_agg = True
+
+    def retrieve_aggregation(self, df=None, reindices=None):
+        "Main function for retrieving aggregation."
+        if self.bool_read_agg:
+            typevars, filepath = self.typevars, self.filepath
+            aggfeatures, agglocs = read_aggregation(typevars, filepath)
+        else:
+            typevars = self.typevars
+            aggfeatures, agglocs = create_aggregation(df, typevars, reindices)
+        ## Format output
+        agglocs = np.array(agglocs)
+        ndim, N_t = len(agglocs.shape), agglocs.shape[0]
+        agglocs = agglocs if ndim > 1 else agglocs.reshape((N_t, 1))
+        return agglocs, aggfeatures
+
+

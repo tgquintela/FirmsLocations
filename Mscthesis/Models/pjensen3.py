@@ -10,15 +10,12 @@ TODO
 """
 
 import numpy as np
-from Mscthesis.Models import DescriptorModel
-from Mscthesis.Preprocess.comp_complementary_data import \
-    compute_aggregate_counts
-from aux_functions import compute_global_counts
+from Mscthesis.Models import Model
 
 
 ########### Class for computing index of the model selected
 ##################################################################
-class Pjensen(DescriptorModel):
+class Pjensen(Model):
     """
     Model of spatial correlation inference. This model is the application of
     the spatial correlation used by P. Jensen [1]
@@ -27,31 +24,26 @@ class Pjensen(DescriptorModel):
     ----------
     .. [1]
 
-    TODO
-    ----
-    The model has to retrieve the val_i and the features (model_dim)
-
     """
+    #bool_agg
+    #bool_matrix
+    #bool_r_agg
+    #var_types
+    def __init__():
+        if agg_file_info is not None:
+            self.agg_filepath = agg_file_info['filepath']
+            self.locs_var_agg = agg_file_info['locs_vars']
+            self.types_vars_agg = agg_file_info['type_vars']
+            self.bool_agg = True
+        
 
-    def __init__(self, df, typevars):
-        "The inputs are the needed to compute model_dim."
-        self.typevars = typevars
-        self.counts, self.counts_info = compute_globalstats(df, typevars)
-        self.n_vals = self.counts_info.shape[0]
-        self.model_dim = self.compute_model_dim()
-        self.globalnorm = self.compute_global_info_descriptor(df.shape[0])
-
-    ###########################################################################
-    ####################### Compulsary main functions #########################
-    ###########################################################################
-    def to_complete_measure(self, corr_loc, N_t):
+    def to_complete_measure(self, corr_loc, n_vals, N_t, N_x):
         """Main function to compute the complete normalized measure of pjensen
         from the matrix of estimated counts.
         """
-        ## 0. Needed variables
-        n_vals = self.counts_info.shape[0]
-        C = self.globalnorm
-        ## 1. Computing the nets
+        n_vals = n_vals[0]
+        C = global_constants_jensen(n_vals, N_t, N_x)
+        # Computing the nets
         n_calc = corr_loc.shape[2]
         net = np.zeros((n_vals, n_vals, n_calc))
         for i in range(n_calc):
@@ -60,90 +52,78 @@ class Pjensen(DescriptorModel):
             net[idx_null] = 0.
         return net
 
-    def compute_descriptors(self, characs, val_i, idx_null=None):
+    def compute_descriptors(self, vals, val_i, n_vals, C=None, idx_null=None,
+                            N_x=None):
         """Compute descriptors, main funtion of the son class. It returns the
         descriptors of the element evaluated by computing from its trivial
         descriptors and its own type value (val_i).
         """
         ## 0. Needed variables transformations
-        n_vals = self.counts_info.shape[0]
-        N_x = self.counts
-        C = self.globalnorm
+        n_vals = n_vals[0]
 
         ## 1. Computation of the descriptors
-        #counts_i = compute_raw_descriptors(vals, n_vals, self.bool_agg)
-        corr_loc_i = compute_local_descriptors(characs, val_i, n_vals, N_x)
-        idx_null = np.logical_or(C == 0, corr_loc_i == 0)  # Probably incorrect
-
+        counts_i = compute_raw_descriptors(vals, n_vals, self.bool_agg)
+        corr_loc_i = compute_local_descriptors(counts_i, val_i, n_vals, N_x)
         # Normalization
-        descriptors = np.log10(np.multiply(C, corr_loc_i))
-        descriptors[idx_null] = 0.
-
+        if C is not None and idx_null is not None:
+            descriptors = np.log10(np.multiply(C, corr_loc_i))
+            descriptors[idx_null] = 0.
+        else:
+            descriptors = corr_loc_i
         return descriptors
-
-    def compute_aggcharacterizers(self, df, agg_var, type_vars, reindices):
-        """Compute aggregate descriptors. It returns the aggregate
-        descriptors for the whole data.
-        """
-        desc, _ = compute_aggregate_counts(df, agg_var, type_vars, reindices)
-        return desc
 
     ###########################################################################
     ######################## Auxiliar functions corr ##########################
     ###########################################################################
-    def compute_global_info_descriptor(self, N_t):
+    def compute_model_dim(self, n_vals, N_x):
+        """Auxiliar function for computing the dimensions required for the
+        result of the correlation. It is dependant with the model we select.
+        """
+        n_vals0, n_vals1 = n_vals[0], n_vals[0]
+        return n_vals0, n_vals1
+
+    def compute_global_info_descriptor(self, n_vals, N_t, N_x):
         """Function which groups in a dict all the needed global information to
         compute the desired measure. This information will be used by the
         specific model function compute_descriptors.
         """
+
         ## 0. Needed variables transformations
-        n_vals = self.counts_info.shape[0]
-        N_x = self.counts
-        ## 1. Computation of the normalization constant
-        C = global_constants_jensen(n_vals, N_t, N_x)
-        return C
+        n_vals = n_vals[0]
+        N_x = N_x[N_x.keys()[0]]
 
-    ###########################################################################
-    ######################## Auxiliar class functions #########################
-    ###########################################################################
-    def compute_model_dim(self):
-        """Auxiliar function for computing the dimensions required for the
-        result of the correlation. It is dependant with the model we select.
-        """
-        n_vals0, n_vals1 = self.counts_info.shape[0], self.counts_info.shape[0]
-        return n_vals0, n_vals1
-
-    def compute_value_i(self, i, k, feat_arr, reindices):
-        "Compute the val of a specific point."
-        val_i = feat_arr[reindices[i, k], :].astype(int)
-        return val_i
-
-    def compute_vals_nei(self, aggfeatures, feat_arr, neighs, reindices, k,
-                         type_n):
-        "Function which retrieve the vals from neighs and feature arrays."
-        if type_n == 'aggregate':
-            vals = aggfeatures[neighs, :, k].astype(int)
+        ## 1. Compute variables for compute_descriptors function
+        if self.bool_matrix:
+            C = global_constants_jensen(n_vals, N_t, N_x)
+            idx_null = C == 0
+            out = {'C': C, 'idx_null': idx_null, 'N_x': N_x}
         else:
-            vals = feat_arr[reindices[neighs, k]].astype(int)
-        return vals
+            out = {'N_x': N_x}
+        return out
 
-    def integrate_vals(self, vals, type_n):
-        """Integrate the vals once they are retrieved the values from features
-        and neighbours.
+    def get_characterizers(self, i, k, neighs, type_arr, reindices,
+                           agg_desc=None):
+        """Retrieve local characterizers for i element and k permutation. It
+        returns the column index in the output matrix correlation (val_i) and
+        trivial descriptors of the neighbourhood (vals). This values are used
+        for the specific model function compute_descriptors.
         """
-        if type_n == 'aggregate':
-            counts_i = np.sum(vals, axis=0)
+        if not self.bool_r_agg:  # self.bool_agg:
+            val_i = type_arr[reindices[i, k], 0]
+            neighs_k = reindices[neighs, k]
+            vals = type_arr[neighs_k, :]
         else:
-            n_vals = self.counts_info.shape[0]
-            counts_i = count_in_neighborhood(vals, n_vals)
-        return counts_i
+            var = self.var_types['type_vars'][0]
+            val_i = type_arr[reindices[i, k], 0]
+            vals = agg_desc[var][neighs, :, k]
+        return val_i, vals
 
     ###########################################################################
     ############################ Quality measure ##############################
     ###########################################################################
-    def compute_quality(self, corr_loc, count_matrix, feat_arr, val_type=None):
+    def compute_quality(self, corr_loc, count_matrix, type_arr, val_type=None):
         "Computation of the quality measure associated to the model."
-        Q = compute_quality_measure(corr_loc, count_matrix, feat_arr, val_type)
+        Q = compute_quality_measure(corr_loc, count_matrix, type_arr, val_type)
         return Q
 
 
@@ -199,20 +179,13 @@ def compute_loc_M_index(counts_i, idx, n_vals, N_x, sm_par=1e-10):
     return corr_loc_i
 
 
-def compute_globalstats(df, typevars):
-    feat_vars = typevars['feat_vars']
-    counts, counts_info = compute_global_counts(df, feat_vars)
-    counts = counts[counts.keys()[0]]
-    counts_info = counts_info[counts_info.keys()[0]]
-    return counts, counts_info
-
-
 def global_constants_jensen(n_vals, N_t, N_x):
     """Auxiliary function to compute the global constants of the the M index
     for spatial correlation. This constants represent the global density stats
     which are used as the null model to compare with the local stats.
     """
     ## Building the normalizing constants
+    N_x = N_x[N_x.keys()[0]]
     C = np.zeros((n_vals, n_vals))
     for i in range(n_vals):
         for j in range(n_vals):
