@@ -86,6 +86,7 @@ class Pjensen(DescriptorModel):
         descriptors for the whole data.
         """
         desc, _ = compute_aggregate_counts(df, agg_var, type_vars, reindices)
+        des = des[des.keys()[0]]
         return desc
 
     ###########################################################################
