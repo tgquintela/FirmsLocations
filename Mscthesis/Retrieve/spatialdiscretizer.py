@@ -24,11 +24,15 @@ class SpatialDiscretizor:
     regionlocs = None
     regions_id = None
 
-    def retrieve_regions(self, point_i, info_i, ifdistance=False):
-        ######TODO
-        pass
+    regionretriever = None
 
-    def retrieve_neighs(self, point_i, locs):
+    def retrieve_region(self, point_i, info_i, ifdistance=False):
+        if len(point_i.shape) == 1:
+            point_i = point_i.reshape(1, point_i.shape[0])
+        region = map_loc2regionid(point_i)
+        return region
+
+    def retrieve_neigh(self, point_i, locs):
         """Retrieve the neighs given a point. Could be an internal retrieve if
         point_i is an index or an external retrieve if point_i it is not a
         point in locs (point_i is a coordinates).
@@ -48,6 +52,10 @@ class SpatialDiscretizor:
     def map2id(self, locs):
         regions = self.map_loc2regionid(locs)
         return regions
+
+    def map2aggloc(self, locs):
+        agglocs = self.map2aggloc_spec(locs)
+        return agglocs
 
 
 class GridSpatialDisc(SpatialDiscretizor):
@@ -81,6 +89,15 @@ class GridSpatialDisc(SpatialDiscretizor):
         logi = regions == region
         return logi
 
+    def map2aggloc_spec(self, locs):
+        agglocs = np.zeros(locs.shape).astype(float)
+        delta_x = self.borders[0][1]-self.borders[0][0]
+        delta_y = self.borders[1][1]-self.borders[1][0]
+        grid_locs = self.apply_grid(locs)
+        agglocs[:, 0] = grid_locs[:, 0]*delta_x + delta_x/2.
+        agglocs[:, 1] = grid_locs[:, 1]*delta_y + delta_y/2.
+        return agglocs
+
 
 def map_gridloc2regionid(locs_grid, grid_size):
     return locs_grid[:, 0]*grid_size[0]+locs_grid[:, 1]
@@ -113,6 +130,15 @@ class CircularSpatialDisc(SpatialDiscretizor):
     def discretize_spec(self, locs):
         ## TODO: See which is their correspondent circle.
         pass
+
+    def map2aggloc_spec(self, locs):
+        n_locs = locs.shape[0]
+        agglocs = np.zeros(locs.shape).astype(float)
+        regions = self.discretize(locs)
+        # Average between all the locs circles
+        for i in xrange(n_locs):
+            agglocs[i, :] = np.mean(self.regionlocs[regions[i], :], axis=0)
+        return agglocs
 
 
 def map_circloc2regionid(locs, centerlocs, radis):

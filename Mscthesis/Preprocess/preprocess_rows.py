@@ -220,7 +220,7 @@ def filter_by_date(servicios, date):
 
 
 def retrieve_cp(empresas):
-    return np.array(empresas['cp'].isnull())
+    return np.logical_not(np.array(empresas['cp'].isnull()))
 
 
 ############################# Filter coordinates ##############################

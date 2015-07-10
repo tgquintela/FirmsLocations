@@ -250,11 +250,11 @@ class DescriptorModel:
         """
         # Retrieve neighs
         info_i, cond_i = info_ret[i], cond_agg[i]
-        neighs, type_n = retriever.retrieve_neigh(point_i, cond_i, info_i)
+        neighs, type_n = retriever.retrieve_neighs(point_i, cond_i, info_i)
         # Get vals
         val_i = self.compute_value_i(i, k, feat_arr, reindices)
-        vals = self.compute_vals_nei(retriever.aggfeatures, neighs, reindices,
-                                     k, type_n)
+        vals = self.compute_vals_nei(retriever.aggfeatures, feat_arr, neighs,
+                                     reindices, k, type_n)
         # Get characterizers
         characs = self.integrate_vals(vals, type_n)
 
