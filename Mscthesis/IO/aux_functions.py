@@ -8,6 +8,16 @@ import numpy as np
 from os.path import join
 
 
+def check_cleaned(path):
+    """Check if the folder given is the parentfolder of a cleaned structure
+    for the module
+    """
+    bool_1 = isdir(join(path, 'Main'))
+    bool_2 = isdir(join(path, 'Finantial'))
+    bool_3 = bool_1 and bool_2
+    return bool_3
+
+
 def parse_xlsx_sheet(f, n=0):
     """Parse a sheet of a xlsx file."""
     xl_file = pd.ExcelFile(f)

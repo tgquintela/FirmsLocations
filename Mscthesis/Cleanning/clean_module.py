@@ -55,6 +55,109 @@ types_m = ['Act', 'ActC', 'Pasfijo', 'Pasliq', 'Treb', 'Va', 'Vdes']
 check_xlsx = lambda f: f[-5:] == '.xlsx'
 
 
+############################## GLOBAL VARIABLES ###############################
+###############################################################################
+def folder_structure(outpath):
+    "Function which checks and creates the required folder structure."
+    ## Ensure creation of needed folders
+    if not exists(outpath):
+        os.mkdir(outpath)
+    if not exists(join(outpath, 'Main')):
+        os.mkdir(join(outpath, 'Main'))
+    if not exists(join(join(outpath, 'Main'), 'Servicios')):
+        os.mkdir(join(join(outpath, 'Main'), 'Servicios'))
+    if not exists(join(outpath, 'Finantial')):
+        os.mkdir(join(outpath, 'Finantial'))
+    folders = os.listdir(join(outpath, 'Finantial'))
+    folders_years = [str(int(e)) for e in years]
+    for f in folders_years:
+        if f not in folders:
+            os.mkdir(join(join(outpath, 'Finantial'), f))
+        os.mkdir(join(join(join(outpath, 'Finantial'), f), 'Servicios'))
+
+
+def get_financial_cols():
+    "Get the names of the financial columns."
+    ## Creation of the finantial cols
+    aux = []
+    for i in range(len(years_key)):
+        aux.append([''.join(e) for e in product([years_key[i]], types)])
+    finantial_cols = aux
+
+
+def parse_write_manufactures(inpath, outpath, extension):
+    ""
+    ## Parse manufactures
+    # Start traking
+    t0 = time.time()
+    print "Start parsing manufacturas."
+    # parse manufacturas
+    manufacturas = parse_xlsx_sheet(join(inpath, 'Manufactures.xlsx'))
+    # Rename columns
+    cols = manufacturas.columns
+    newcolnames = clean_colnames_manu(cols)
+    manufacturas.columns = newcolnames
+    # Compute extra variables
+    extra = compute_extra_cols(manufacturas)
+    manufacturas = pd.concat([manufacturas, extra], axis=1)
+    # Correct coordinates
+    coords = ['ES-X', 'ES-Y']
+    manufacturas[coords] = reformat_coordinates_manu(manufacturas, coords)
+    # Categorize cols
+    manufacturas = categorize_cols(manufacturas)
+    # Separate and save
+    name = 'Manufactures.xlsx'
+    write_dataframe(manufacturas[main_cols], name,
+                    join(outpath, 'Main'), extension)
+    # Tracking task
+    print "Manufacturas main lasted %f seconds." % (time.time()-t0)
+    for i in range(len(finantial_cols)):
+        t0 = time.time()
+        y = folders_years[i]
+        write_dataframe(manufacturas[finantial_cols[i]], name,
+                        join(join(outpath, 'Finantial'), y), extension)
+        print "Manufacturas year %s lasted %f seconds." % (y, time.time()-t0)
+    del manufacturas
+
+
+def parse_write_servicios(inpath, outpath, extension):
+    ""
+    ## 1. Parse servicios
+    t0 = time.time()
+    onlyfiles = [f for f in os.listdir(join(inpath, 'Servicios'))
+                 if isfile(join(join(inpath, 'Servicios'), f))
+                 and check_xlsx(f)]
+    for f in onlyfiles:
+        # parse servicios
+        servicios = parse_xlsx_sheet(join(join(inpath, 'Servicios'), f))
+        # Rename columns
+        cols = servicios.columns
+        newcolnames = clean_colnames_servi(cols)
+        servicios.columns = newcolnames
+        # Compute extra variables
+        apertura = obtain_open_aperture_date(servicios)
+        servicios['apertura'] = apertura
+        servicios = compute_close_date_servicios(servicios)
+        ## Categorize cols
+        servicios = categorize_cols(servicios)
+        # Separate and save
+        write_dataframe(servicios[main_cols], f,
+                        join(join(outpath, 'Main'), 'Servicios'), extension)
+        print "Compute %s." % f
+        print "Servicios main lasted %f seconds." % (time.time()-t0)
+        # Write servicios
+        path_fin = join(outpath, 'Finantial')
+        for i in range(len(finantial_cols)):
+            t0 = time.time()
+            y = folders_years[i]
+            write_dataframe(servicios[finantial_cols[i]], f,
+                            join(join(path_fin, y), 'Servicios'), extension)
+            print "Servicios year %s lasted %f seconds." % (y, time.time()-t0)
+
+
+
+############################# AUXILIAR FUNCTIONS ##############################
+###############################################################################
 def aggregate_by_mainvar(parentfolder, agg_var, loc_vars, type_var=None,
                          ifwrite=True, transformation=lambda x: x):
     """Function to aggregate variables by the selected variable considering a
@@ -336,12 +439,3 @@ def check_year_open(df, year):
         logi = np.logical_or(logi, logis[:, i])
     return logi
 
-
-def check_cleaned(path):
-    """Check if the folder given is the parentfolder of a cleaned structure
-    for the module
-    """
-    bool_1 = isdir(join(path, 'Main'))
-    bool_2 = isdir(join(path, 'Finantial'))
-    bool_3 = bool_1 and bool_2
-    return bool_3
