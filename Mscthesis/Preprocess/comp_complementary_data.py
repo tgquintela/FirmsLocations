@@ -15,7 +15,7 @@ TODO:
 import numpy as np
 import pandas as pd
 
-from Mscthesis.Retrieve.density_assignation import general_density_assignation
+from pySpatialTools.Retrieve.density_assignation import general_density_assignation
 
 
 ###############################################################################

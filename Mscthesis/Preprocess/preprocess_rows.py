@@ -14,7 +14,7 @@ Module to preprocess the data and filter unuseful rows.
 
 import numpy as np
 import datetime
-from Mscthesis.Geo_tools.geo_filters import filter_uncorrect_coord_spain,\
+from pySpatialTools.Geo_tools.geo_filters import filter_uncorrect_coord_spain,\
     filter_bool_uncorrect_coord_spain
 
 

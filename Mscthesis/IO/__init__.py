@@ -5,6 +5,7 @@ Module which groups all the functions relate to parse the data or to write it.
 TODO
 ----
 Normalize the columns
+Firms_Parser as a Processer
 
 """
 
@@ -23,15 +24,10 @@ from Mscthesis.Preprocess.preprocess_general import filter_empresas, \
 
 from preparation_module import prepare_filterinfo, prepare_concatinfo, \
     prepare_filtercolsinfo
-
 from aux_functions import concat_from_dict, write_dataframe_to_csv, \
-    get_index_from_dict
+    get_index_from_dict, parse_xlsx_sheet, check_cleaned
 from parse_data import parse_servicios, parse_servicios_columns, \
     parse_manufactures, parse_empresas, parse_finantial_by_year
-from aux_functions import parse_xlsx_sheet
-from clean_module import check_cleaned, clean
-
-from write_log import Logger
 
 ########### Global variables needed
 ##################################################################
@@ -50,45 +46,43 @@ message_close = '----------------------------------------\n'
 
 ########### Class for parsing
 ##################################################################
-class Firms_Parser():
+class Firms_Parser(Processer):
     """This class is the one which controls the parsing process of servicios
     information.
     """
 
-    def __init__(self, cleaned=False, indices=None, logfile=None,
-                 finantial_bool=False):
-        '''Initialization of the parser instance.'''
-        # Logfile
-        self.logfile = Logger(logfile)
-        # Parameters to save
-        self.cleaned = cleaned
-        self.indices = indices
-        self.files = {}
-        # Possibility of parse and concat finantial data
-        self.finantial_bool = finantial_bool
+    indices = None
+    finantial_bool=False
+    files = ''
 
-    def parse(self, parentpath=None, cleaned=None, year=None):
+    def __init__(self, logfile, bool_inform=False):
+        "Instantiation of the class remembering it is a subclass of Processer."
+        self.proc_name = "Firms parser"
+        self.proc_desc = "Parser the standarize data from folder"
+        self.subproc_desc = ["Parsing data",
+                             "Preprocessing, formatting and filtering data"]
+        self.t_expended_subproc = [0, 0]
+        self.logfile = logfile
+
+
+    def parse(self, parentpath=None, year=None, finantial_bool=False):
         """Parsing function which considers if we have parsed or not before."""
         ### 0. Managing inputs
-        if cleaned is None:
-            self.cleaned = check_cleaned(parentpath)
-        if self.cleaned:
-            self.files['clean'] = parentpath
-        else:
-            self.files['raw'] = parentpath
-        # Tracking process with logfile
-        t00 = time.time()
+        cleaned = check_cleaned(parentpath)
+        if not cleaned:
+            raise Exception("TODO: control of errors")
+
+        # Tracking process
         globname = parentpath.split('/')
         globname = globname[-2] if globname[-1] == '' else globname[-1]
-        self.logfile.write_log(message0 % (globname))
-        self.logfile.write_log(message1)
+        self.proc_desc = self.proc_desc+" "+globname
+        self.files = parentpath
+        t00 = self.setting_process()
+
         ## 1. Parsing task
-        if not self.cleaned:
-            ## Cleaning
-            clean(parentpath, join(parentpath, 'Cleaned'))
-            self.files['clean'] = join(parentpath, 'Cleaned')
+        t0 = self.set_subprocess([0])
         ## Parse empresas
-        filepath = join(self.files['clean'], 'Main')
+        filepath = join(self.files, 'Main')
         empresas = parse_empresas(filepath)
         ## Filter empresas
         # Prepare filter information
@@ -104,36 +98,33 @@ class Firms_Parser():
         filtercolsinfo = prepare_filtercolsinfo()
         empresas = filtercols_empresas(empresas, filtercolsinfo)
         ## Stop to track the parsing
-        self.logfile.write_log(message2 % (time.time()-t00))
+        close_subprocess([0], t0)
 
         ## 2. Transforming
         # Start tracking process
-        t0 = time.time()
-        self.logfile.write_log(message1a)
+        t0 = self.set_subprocess([1])
         # Categorization
         empresas = self.categorize_cols(empresas)
         # Parse and concatenation finantial data
-        empresas = self.parse_finantial(empresas, year, self.indices)
+        empresas = self.parse_finantial(empresas, year, self.indices,
+                                        finantial_bool)
         # Reindex
         empresas.index = range(empresas.shape[0])
         ## Closing the tracking
-        self.logfile.write_log(message2 % (time.time()-t0))
-        self.logfile.write_log(message3 % (time.time()-t00))
-        self.logfile.write_log(message_close)
+        close_subprocess([1], t0)
+        self.close_process(t00)
         return empresas
 
     def reparse(self, parentpath):
         "Reparse file using indices."
         # Tracking process with logfile
-        t00 = time.time()
-        self.logfile.write_log(message0 % (parentpath.split('/')[-1]))
-        self.logfile.write_log(message1)
+        t00 = self.setting_process()
         ## 1. Parsing task
+        t0 = self.set_subprocess([0])
         ## Parse empresas
         filepath = join(parentpath, 'Main')
         empresas = parse_empresas(filepath)
         ## Filter empresas
-        # Filter
         empresas, _ = filter_empresas(empresas, {}, self.indices)
         ## Format data to work
         # Concat info
@@ -144,30 +135,29 @@ class Firms_Parser():
         filtercolsinfo = prepare_filtercolsinfo()
         empresas = filtercols_empresas(empresas, filtercolsinfo)
         ## Stop to track the parsing
-        self.logfile.write_log(message2 % (time.time()-t00))
+        close_subprocess([0], t0)
+
         ## 2. Tranforming
         # Start tracking process
-        t0 = time.time()
-        self.logfile.write_log(message1a)
+        t0 = self.set_subprocess([1])
         ## Transformation
         empresas = self.categorize_cols(empresas)
         ## 3. Reindex
         empresas.index = range(empresas.shape[0])
         ## Closing the tracking
-        self.logfile.write_log(message2 % (time.time()-t0))
-        self.logfile.write_log(message3 % (time.time()-t00))
-        self.logfile.write_log(message_close)
+        close_subprocess([1], t0)
+        self.close_process(t00)
         return empresas
 
     def categorize_cols(self, empresas):
-        '''TO GENERALIZE'''
+        '''TO GENERALIZE, TODEPRECATE, preprocess function'''
         empresas = cp2str(empresas)
         empresas = cnae2str(empresas)
         return empresas
 
-    def parse_finantial(self, empresas, year, indices):
-        "Parse and concat the finantial data."
-        if self.finantial_bool:
+    def parse_finantial(self, empresas, year, indices, finantial_bool=False):
+        "Parse and concat the finantial data. TODO: for standarize data"
+        if finantial_bool:
             finantial = parse_finantial_by_year(self.files['raw'], year)
             # apply filter dict
             empresas, _ = filter_empresas(empresas, {}, self.indices)
