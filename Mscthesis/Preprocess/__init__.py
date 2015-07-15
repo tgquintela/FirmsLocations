@@ -21,7 +21,7 @@ from pySpatialTools.Geo_tools.geo_transformations import general_projection
 from pythonUtils.ProcessTools import Processer
 
 
-class Firms_Preprocessor(Processor):
+class Firms_Preprocessor(Processer):
     "Special class to preprocess firms data."
     projection_values = None
     map_vars = None
