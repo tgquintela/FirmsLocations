@@ -29,10 +29,10 @@ TODO
 from pythonUtils.ProcessTools import Processer
 
 from clean_module import folder_structure, get_financial_cols,\
-    parse_write_manufactures, parse_write_manufactures
+    parse_write_manufactures, parse_write_servicios
 
 
-def CleanProcess(Processer):
+class CleanProcess(Processer):
     "Process defined to clean data from raw data."
 
     def __init__(self, logfile, bool_inform=False):
@@ -44,21 +44,23 @@ def CleanProcess(Processer):
         self.subproc_desc = ["Cleaning manufacturas", "Cleaning servicios"]
         self.t_expended_subproc = [0, 0]
 
-    def clean(inpath, outpath, extension='csv'):
+    def clean(self, inpath, outpath, extension='csv'):
         "Main function of the class."
         ## 0. Track process
-        t0 = self.setting_process()
+        t0 = self.setting_global_process()
         ## 1. Ensure creation of needed folders
-        folder_structure(outpath)
+        folders_years = folder_structure(outpath)
         ## 2. Set financial columns
         finantial_cols = get_financial_cols()
         ## 3. Parse and write manufactures
         t1 = self.set_subprocess([0])
-        parse_write_manufactures(inpath, outpath, extension, finantial_cols)
-        close_subprocess([0], t1)
+        parse_write_manufactures(inpath, outpath, extension, finantial_cols,
+				 folders_years)
+        self.close_subprocess([0], t1)
         ## 4. Parse and write servicios
         t1 = self.set_subprocess([1])
-        parse_write_servicios(inpath, outpath, extension, finantial_cols)
-        close_subprocess([1], t1)
+        parse_write_servicios(inpath, outpath, extension, finantial_cols,
+			      folders_years)
+        self.close_subprocess([1], t1)
         ## 5. Stop tracking process
         self.close_process(t0)

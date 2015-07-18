@@ -133,16 +133,29 @@ def computation_aggregate_collapse_i(type_arr, n_vals):
 ###############################################################################
 ############################# Auxiliar grid counts ############################
 ###############################################################################
-def compute_population_data(locs, pop, popvars, parameters):
+def compute_population_data(locs, pop, popvars, retriever, info_ret, params):
     "Function to compute the correspondant population data to each point."
 
     ## 0. Computation of initial variables
     locs = np.array(locs)
+
     locs_pop = np.array(pop[popvars['loc_vars']])
     pop_pop = np.array(pop[popvars['pop_vars']])
 
+    # Defining the retriever
+    retriever = retriever(locs_pop)
+
     ## 1. Computation of assignation to point
-    pop_assignation = general_density_assignation(locs, parameters, pop_pop,
-                                                  locs_pop)
+    pop_assignation = general_density_assignation(locs, retriever, info_ret,
+                                                  pop_pop, **params)
 
     return pop_assignation
+
+
+def population_assignation_f(weights, values):
+    """Population function decided. Values has 3dim: population, density and
+    area).
+    """
+    ## Only use population data
+    pop_assign = np.dot(values[:, 0], weights)
+    return pop_assign

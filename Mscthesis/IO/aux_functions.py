@@ -5,7 +5,7 @@ Auxiliary functions for parsing and managing input data.
 
 import pandas as pd
 import numpy as np
-from os.path import join
+from os.path import join, isdir
 
 
 def check_cleaned(path):

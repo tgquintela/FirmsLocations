@@ -74,6 +74,7 @@ def folder_structure(outpath):
         if f not in folders:
             os.mkdir(join(join(outpath, 'Finantial'), f))
         os.mkdir(join(join(join(outpath, 'Finantial'), f), 'Servicios'))
+    return folders_years
 
 
 def get_financial_cols():
@@ -83,9 +84,11 @@ def get_financial_cols():
     for i in range(len(years_key)):
         aux.append([''.join(e) for e in product([years_key[i]], types)])
     finantial_cols = aux
+    return finantial_cols
 
 
-def parse_write_manufactures(inpath, outpath, extension):
+def parse_write_manufactures(inpath, outpath, extension, finantial_cols,
+			     folders_years):
     ""
     ## Parse manufactures
     # Start traking
@@ -120,7 +123,8 @@ def parse_write_manufactures(inpath, outpath, extension):
     del manufacturas
 
 
-def parse_write_servicios(inpath, outpath, extension):
+def parse_write_servicios(inpath, outpath, extension, finantial_cols,
+			  folders_years):
     ""
     ## 1. Parse servicios
     t0 = time.time()
