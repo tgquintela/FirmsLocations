@@ -131,7 +131,7 @@ def computation_aggregate_collapse_i(type_arr, n_vals):
 
 
 ###############################################################################
-############################# Auxiliar grid counts ############################
+############################## Population variable ############################
 ###############################################################################
 def compute_population_data(locs, pop, popvars, retriever, info_ret, params):
     "Function to compute the correspondant population data to each point."
@@ -159,3 +159,34 @@ def population_assignation_f(weights, values):
     ## Only use population data
     pop_assign = np.dot(values[:, 0], weights)
     return pop_assign
+
+
+###############################################################################
+########################### Cond_agg and info_ret #############################
+###############################################################################
+def create_info_ret(df, typevars, params=None):
+    "Creation of the information for retrieve neighs."
+    ## Needed vars
+    n = df.shape[0]
+    typevars['info_ret'] = ['info_i', 'info_agg']
+    ## Assignation
+    if type(params) == list:
+        df['info_i'] = params[0]
+        df['info_agg'] = params[1]
+    else:    
+        df['info_i'] = 2.5*np.ones(n)
+        df['info_agg'] = (3*np.ones(n)).astype(int)
+    return df, typevars
+
+
+def create_cond_agg(df, typevars, params=None):
+    "Creation of the conditional aggregation for retrieve aggregate data."
+    ## Needed vars
+    df.shape[0]
+    typevars['cond_agg'] = 'cond_agg'
+    ## Assignation
+    if type(params) == np.ndarray:
+        df['cond_agg'] = params
+    else:
+        df['cond_agg'] = np.ones(n).astype(bool)
+    return df, typevars

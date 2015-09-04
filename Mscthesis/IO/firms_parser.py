@@ -34,17 +34,6 @@ from parse_data import parse_servicios, parse_servicios_columns, \
 
 ########### Global variables needed
 ##################################################################
-message0 = """========================================
-Start parsing data:
--------------------
-(%s)
-
-"""
-message1 = "Parsing data: "
-message1a = "Preprocessing, formatting and filtering data: "
-message2 = "completed in %f seconds.\n"
-message3 = "Total time expended parsing process: %f seconds.\n"
-message_close = '----------------------------------------\n'
 
 
 ########### Class for parsing

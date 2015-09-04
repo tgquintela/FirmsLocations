@@ -39,9 +39,9 @@ data, typ = mparser.parse(mpiosfile)
 params = {'f_weights': 'exponential', 'params_w':{'max_r':10.}, 'f_dens': population_assignation_f, 'params_d':{}}
 data.loc[:, typ['loc_vars']] = general_projection(data, typ['loc_vars'], method='ellipsoidal', inverse=False, radians=False)
 
-locs = data[typ['loc_vars']]
+locs = empresas[typevars['loc_vars']]
 retriever = KRetriever
-info_ret = np.ones(data.shape[0]).astype(int)*3
+info_ret = np.ones(locs.shape[0]).astype(int)*3
 
 m = compute_population_data(locs, data, typ, retriever, info_ret, params)
 
@@ -49,36 +49,54 @@ empresas['population_idx'] = m
 typevars['pop_var'] = 'population_idx'
 
 
-
 #### 2. Compute model
 from pySpatialTools.IO import create_reindices
+from Mscthesis.Preprocess import compute_population_data, create_info_ret, create_cond_agg
+from pySpatialTools.Preprocess import Aggregator
+from pySpatialTools.Retrieve import CircRetriever, Neighbourhood, KRetriever
+
+#compute_population_data(locs, pop, popvars, retriever, info_ret, params)
 
 
 ## Define aggregator
 agg = Aggregator(typevars=typevars)
 
 ## Define permuts
-reindices = create_reindices(empresas.shape[0], m)
+permuts = 2
+reindices = create_reindices(empresas.shape[0], permuts)
+
+## Define info retriever and conditional aggregator
+empresas, typevars = create_info_ret(empresas, typevars)
+empresas, typevars = create_cond_agg(empresas, typevars, np.random.randint(0,2,empresas.shape[0]).astype(bool))
+
+
+### Aplying model
+from pySpatialTools.Models import Pjensen, ModelProcess, Countdescriptor
+
+## Define descriptormodel
+descriptormodel = Countdescriptor(empresas, typevars)
 
 ## Define retriever (Neigh has to know typevars)  (TODO: define bool_var)
 retriever = CircRetriever(empresas[typevars['loc_vars']].as_matrix())
-aggretriever = KRetriever(locs)
+aggretriever = KRetriever
 
-Neigh = Neighbourhood(retriever, typevars, empresas, reindices, aggretriever, funct=None)
-del locs, retriever
+Neigh = Neighbourhood(retriever, typevars, empresas, reindices, aggretriever, funct=descriptormodel.compute_aggcharacterizers)
+del locs
 
-## Define info retriever and conditional aggregator
-create_info_ret()
-
-## Define descriptormodel
-descriptormodel = Pjensen(empresas, typevars)
 
 ## Define process
-modelprocess = ModelProcess(logfile, Neigh, descriptormodel, typevars=typevars, lim_rows=100000,
+modelprocess = ModelProcess(logger, Neigh, descriptormodel, typevars=typevars, lim_rows=5000,
                             proc_name='Test')
 
-corrs = modelprocess.compute_net(empresas, 2., True, reindices)
-matrix = modelprocess.compute_matrix(empresas, info_ret=None, cond_agg=None, reindices)
+matrix = modelprocess.compute_matrix(empresas, reindices)
+
+descriptormodel = Pjensen(empresas, typevars)
+modelprocess = ModelProcess(logger, Neigh, descriptormodel, typevars=typevars, lim_rows=5000,
+                            proc_name='Test')
+corrs = modelprocess.compute_net(empresas,reindices)
+net = modelprocess.filter_with_random_nets(corrs, 0.03)
+
+
 
 
 
