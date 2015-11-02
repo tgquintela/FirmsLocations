@@ -1,5 +1,13 @@
 
 
+### 2015-10-29
+def density_assignation_f(weights, values):
+    """Density function decided. Varibale values has 3dim: feature value,
+    density and area.
+    """
+    ## Only use population data
+    dens_assign = np.dot(values[:, 0], weights)
+    return dens_assign
 
 
 

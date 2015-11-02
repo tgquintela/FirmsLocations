@@ -15,8 +15,6 @@ TODO:
 import numpy as np
 import pandas as pd
 
-from pySpatialTools.Retrieve.density_assignation import general_density_assignation
-
 
 ###############################################################################
 ############################ Main functions counts ############################
@@ -131,37 +129,6 @@ def computation_aggregate_collapse_i(type_arr, n_vals):
 
 
 ###############################################################################
-############################## Population variable ############################
-###############################################################################
-def compute_population_data(locs, pop, popvars, retriever, info_ret, params):
-    "Function to compute the correspondant population data to each point."
-
-    ## 0. Computation of initial variables
-    locs = np.array(locs)
-
-    locs_pop = np.array(pop[popvars['loc_vars']])
-    pop_pop = np.array(pop[popvars['pop_vars']])
-
-    # Defining the retriever
-    retriever = retriever(locs_pop)
-
-    ## 1. Computation of assignation to point
-    pop_assignation = general_density_assignation(locs, retriever, info_ret,
-                                                  pop_pop, **params)
-
-    return pop_assignation
-
-
-def population_assignation_f(weights, values):
-    """Population function decided. Values has 3dim: population, density and
-    area).
-    """
-    ## Only use population data
-    pop_assign = np.dot(values[:, 0], weights)
-    return pop_assign
-
-
-###############################################################################
 ########################### Cond_agg and info_ret #############################
 ###############################################################################
 def create_info_ret(df, typevars, params=None):
@@ -173,7 +140,7 @@ def create_info_ret(df, typevars, params=None):
     if type(params) == list:
         df['info_i'] = params[0]
         df['info_agg'] = params[1]
-    else:    
+    else:
         df['info_i'] = 2.5*np.ones(n)
         df['info_agg'] = (3*np.ones(n)).astype(int)
     return df, typevars
@@ -182,7 +149,7 @@ def create_info_ret(df, typevars, params=None):
 def create_cond_agg(df, typevars, params=None):
     "Creation of the conditional aggregation for retrieve aggregate data."
     ## Needed vars
-    df.shape[0]
+    n = df.shape[0]
     typevars['cond_agg'] = 'cond_agg'
     ## Assignation
     if type(params) == np.ndarray:
