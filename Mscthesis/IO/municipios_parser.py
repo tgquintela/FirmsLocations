@@ -35,6 +35,6 @@ class Municipios_Parser(Processer):
         "Parse the data from the file given."
         data = pd.read_csv(filepath, sep=';', index_col=0)
         typevars = {}
-        typevars['pop_vars'] = ['Poblacion', "Superficie", "Densidad"]
+        typevars['feat_vars'] = ['Poblacion', "Superficie", "Densidad"]
         typevars['loc_vars'] = ["longitud", "latitud"]
         return data, typevars
