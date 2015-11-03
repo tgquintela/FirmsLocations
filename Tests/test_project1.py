@@ -23,9 +23,14 @@ empresas = preprocess.preprocess(empresas)
 
 ### Prepare municipios
 from Mscthesis.IO import Municipios_Parser
-from pySpatialTools.Retrieve import general_density_assignation
+from pySpatialTools.Interpolation import general_density_assignation
 from pySpatialTools.Retrieve import KRetriever
-from Mscthesis.Preprocess.comp_complementary_data import population_assignation_f, compute_population_data
+
+from pySpatialTools.Interpolation.density_assignation_process import \
+    DensityAssign_Process
+from pySpatialTools.Interpolation.density_utils import population_assignation_f
+
+#from Mscthesis.Preprocess.comp_complementary_data import population_assignation_f, compute_population_data
 
 # municipios file
 mpiosfile = '/home/tono/mscthesis/code/Data/municipios_data/municipios-espana_2014_complete.csv'
@@ -37,17 +42,18 @@ data, typ = mparser.parse(mpiosfile)
 params = {'f_weights': 'exponential', 'params_w': {'max_r': 10.}, 'f_dens': population_assignation_f, 'params_d': {}}
 params_proj = {'method': 'ellipsoidal', 'inverse': False, 'radians': False}
 
+
 data.loc[:, typ['loc_vars']] = general_projection(data, typ['loc_vars'], **params_proj)
 locs = empresas[typevars['loc_vars']]
+
 
 retriever = KRetriever
 info_ret = np.ones(locs.shape[0]).astype(int)*3
 
-## TODO: Substitute this for a ProcessClass
-# pop_assign = PopulationAssignationProcess(retriever)
-# m = pop_assign.compute_pop_data(locs, data, typ, info_ret, params)
+## ProcessClass
+pop_assign = DensityAssign_Process(logger, retriever)
+m = pop_assign.compute_density(locs, data, typ, info_ret, params)
 
-m = compute_population_data(locs, data, typ, retriever, info_ret, params)
 ###########################################
 
 
@@ -60,7 +66,7 @@ typevars['pop_var'] = 'population_idx'
 
 #### 2. Compute model descriptors
 from pySpatialTools.IO import create_reindices
-from Mscthesis.Preprocess import compute_population_data, create_info_ret, create_cond_agg
+from Mscthesis.Preprocess import create_info_ret, create_cond_agg
 from pySpatialTools.Preprocess import Aggregator
 from pySpatialTools.Retrieve import CircRetriever, Neighbourhood, KRetriever
 
@@ -80,7 +86,7 @@ empresas, typevars = create_cond_agg(empresas, typevars, np.random.randint(0, 2,
 
 
 ### Aplying model
-from pySpatialTools.Models import Pjensen, ModelProcess, Countdescriptor
+from pySpatialTools.Descriptor_Models import Pjensen, ModelProcess, Countdescriptor
 
 ## Define descriptormodel
 descriptormodel = Countdescriptor(empresas, typevars)
@@ -112,3 +118,4 @@ net = modelprocess.filter_with_random_nets(corrs, 0.03)
 # definition of parameters
 # Instantiation of the class
 # Making the prediction
+
