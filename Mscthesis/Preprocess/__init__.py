@@ -13,5 +13,4 @@ TODO:
 
 from firms_preprocessor import Firms_Preprocessor
 
-from comp_complementary_data import create_info_ret, create_cond_agg,\
-    compute_population_data
+from comp_complementary_data import create_info_ret, create_cond_agg
