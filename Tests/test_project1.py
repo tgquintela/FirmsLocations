@@ -103,19 +103,54 @@ del locs
 modelprocess = ModelProcess(logger, Neigh, descriptormodel, typevars=typevars,
                             lim_rows=5000, proc_name='Test')
 
-matrix = modelprocess.compute_matrix(empresas, reindices)
+count_matrix = modelprocess.compute_matrix(empresas, reindices)
 
 descriptormodel = Pjensen(empresas, typevars)
 modelprocess = ModelProcess(logger, Neigh, descriptormodel, typevars=typevars,
                             lim_rows=5000, proc_name='Test')
 
+pjensen_matrix = modelprocess.compute_matrix(empresas, reindices)
 corrs = modelprocess.compute_net(empresas,reindices)
 net = modelprocess.filter_with_random_nets(corrs, 0.03)
 
 
 ### 3. Recommmendation
+from pySpatialTools.Recommender import PjensenRecommender
+from pySpatialTools.Recommender import SupervisedRmodel
+from sklearn.cross_validation import KFold
+from pySpatialTools.Interpolation.density_assignation import \
+    general_density_assignation, from_distance_to_weights, compute_measure_i
 
+################### Pjensen ###################
 # definition of parameters
+feat_arr = np.array(empresas[typevars['feat_vars']])
+
 # Instantiation of the class
-# Making the prediction
+recommender = PjensenRecommender()
+# Making the predictionmatrix
+Q = recommender.compute_quality(net, count_matrix, feat_arr, 0)
+Qs, idxs = recommender.compute_kbest_type(net, count_matrix, feat_arr, 5)
+
+################## Supervised #################
+# definition of parameters
+feat_arr = np.array(empresas[typevars['feat_vars']])
+
+# Instantiation of the class
+recommender = SupervisedRmodel(modelcl, pars_model, cv, pars_cv)
+model, measure = recommender.fit_model(pjensen_matrix, feat_arr)
+Q = recommender.compute_quality(pjensen_matrix)
+
+################## Supervised #################
+# definition of parameters
+feat_arr = np.array(empresas[typevars['feat_vars']])
+weights_f = lambda 
+
+general_density_assignation(locs, retriever, info_ret, values, f_weights,
+                                params_w, f_dens, params_d)
+
+# Instantiation of the class
+recommender = NeighRecommender(retriever, weights_f)
+
+
+
 
