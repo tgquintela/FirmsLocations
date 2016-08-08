@@ -1,0 +1,24 @@
+
+
+
+############ 2016-08-02 Computers
+###########################
+
+#def apply_sklearn_model(x, y, parameters_grid, model):
+#    clf_model = GridSearchCV(model, parameters_grid)
+#    clf_model.fit(x, y)
+#    return clf_model.best_estimator_, clf_model.best_score_
+
+#def name_creation(modelname, precomputers_id):
+#    num_creator = lambda num: (4-len(str(num)))*'0'+str(num)
+#    name = '_'.join([p[0]+num_creator(p[1]) for p in precomputers_id])
+#    name = modelname+'_'+name
+#    return name
+#
+#class Pjensen(GeneralComputer):
+#    """Pjensen model is based on the precomputation of the networks.
+#    """
+#
+#    def compute(self, ):
+#        ## Get counter
+#

@@ -11,7 +11,7 @@ Folder structure ===========
 Parent_folder
     |-- Main
         |-- Servicios
-    |-- Finantial
+    |-- Financial
         |-- year
             |-- Servicios
         |-- ...
@@ -66,29 +66,29 @@ def folder_structure(outpath):
         os.mkdir(join(outpath, 'Main'))
     if not exists(join(join(outpath, 'Main'), 'Servicios')):
         os.mkdir(join(join(outpath, 'Main'), 'Servicios'))
-    if not exists(join(outpath, 'Finantial')):
-        os.mkdir(join(outpath, 'Finantial'))
-    folders = os.listdir(join(outpath, 'Finantial'))
+    if not exists(join(outpath, 'Financial')):
+        os.mkdir(join(outpath, 'Financial'))
+    folders = os.listdir(join(outpath, 'Financial'))
     folders_years = [str(int(e)) for e in years]
     for f in folders_years:
         if f not in folders:
-            os.mkdir(join(join(outpath, 'Finantial'), f))
-        os.mkdir(join(join(join(outpath, 'Finantial'), f), 'Servicios'))
+            os.mkdir(join(join(outpath, 'Financial'), f))
+        os.mkdir(join(join(join(outpath, 'Financial'), f), 'Servicios'))
     return folders_years
 
 
 def get_financial_cols():
     "Get the names of the financial columns."
-    ## Creation of the finantial cols
+    ## Creation of the Financial cols
     aux = []
     for i in range(len(years_key)):
         aux.append([''.join(e) for e in product([years_key[i]], types)])
-    finantial_cols = aux
-    return finantial_cols
+    Financial_cols = aux
+    return Financial_cols
 
 
-def parse_write_manufactures(inpath, outpath, extension, finantial_cols,
-			     folders_years):
+def parse_write_manufactures(inpath, outpath, extension, financial_cols,
+                             folders_years):
     ""
     ## Parse manufactures
     # Start traking
@@ -114,17 +114,17 @@ def parse_write_manufactures(inpath, outpath, extension, finantial_cols,
                     join(outpath, 'Main'), extension)
     # Tracking task
     print "Manufacturas main lasted %f seconds." % (time.time()-t0)
-    for i in range(len(finantial_cols)):
+    for i in range(len(financial_cols)):
         t0 = time.time()
         y = folders_years[i]
-        write_dataframe(manufacturas[finantial_cols[i]], name,
-                        join(join(outpath, 'Finantial'), y), extension)
+        write_dataframe(manufacturas[financial_cols[i]], name,
+                        join(join(outpath, 'Financial'), y), extension)
         print "Manufacturas year %s lasted %f seconds." % (y, time.time()-t0)
     del manufacturas
 
 
-def parse_write_servicios(inpath, outpath, extension, finantial_cols,
-			  folders_years):
+def parse_write_servicios(inpath, outpath, extension, financial_cols,
+                          folders_years):
     ""
     ## 1. Parse servicios
     t0 = time.time()
@@ -150,14 +150,13 @@ def parse_write_servicios(inpath, outpath, extension, finantial_cols,
         print "Compute %s." % f
         print "Servicios main lasted %f seconds." % (time.time()-t0)
         # Write servicios
-        path_fin = join(outpath, 'Finantial')
-        for i in range(len(finantial_cols)):
+        path_fin = join(outpath, 'Financial')
+        for i in range(len(financial_cols)):
             t0 = time.time()
             y = folders_years[i]
-            write_dataframe(servicios[finantial_cols[i]], f,
+            write_dataframe(servicios[financial_cols[i]], f,
                             join(join(path_fin, y), 'Servicios'), extension)
             print "Servicios year %s lasted %f seconds." % (y, time.time()-t0)
-
 
 
 ############################# AUXILIAR FUNCTIONS ##############################
@@ -211,7 +210,7 @@ def aux_transformation(df, lvl):
 def clean(inpath, outpath, extension='csv'):
     """Do the cleaning data from the raw initial data. It formats the data to a
     folder structure in which it is separated the main information of a company
-    with the finantial information in order to save memory and read unnecessary
+    with the Financial information in order to save memory and read unnecessary
     information for some tasks.
     """
     ## 0. Ensure creation of needed folders
@@ -221,19 +220,19 @@ def clean(inpath, outpath, extension='csv'):
         os.mkdir(join(outpath, 'Main'))
     if not exists(join(join(outpath, 'Main'), 'Servicios')):
         os.mkdir(join(join(outpath, 'Main'), 'Servicios'))
-    if not exists(join(outpath, 'Finantial')):
-        os.mkdir(join(outpath, 'Finantial'))
-    folders = os.listdir(join(outpath, 'Finantial'))
+    if not exists(join(outpath, 'Financial')):
+        os.mkdir(join(outpath, 'Financial'))
+    folders = os.listdir(join(outpath, 'Financial'))
     folders_years = [str(int(e)) for e in years]
     for f in folders_years:
         if f not in folders:
-            os.mkdir(join(join(outpath, 'Finantial'), f))
-        os.mkdir(join(join(join(outpath, 'Finantial'), f), 'Servicios'))
-    ## Creation of the finantial cols
+            os.mkdir(join(join(outpath, 'Financial'), f))
+        os.mkdir(join(join(join(outpath, 'Financial'), f), 'Servicios'))
+    ## Creation of the Financial cols
     aux = []
     for i in range(len(years_key)):
         aux.append([''.join(e) for e in product([years_key[i]], types)])
-    finantial_cols = aux
+    Financial_cols = aux
 
     ## 1. Parse manufactures
     # Start traking
@@ -259,11 +258,11 @@ def clean(inpath, outpath, extension='csv'):
                     join(outpath, 'Main'), extension)
     # Tracking task
     print "Manufacturas main lasted %f seconds." % (time.time()-t0)
-    for i in range(len(finantial_cols)):
+    for i in range(len(Financial_cols)):
         t0 = time.time()
         y = folders_years[i]
-        write_dataframe(manufacturas[finantial_cols[i]], name,
-                        join(join(outpath, 'Finantial'), y), extension)
+        write_dataframe(manufacturas[Financial_cols[i]], name,
+                        join(join(outpath, 'Financial'), y), extension)
         print "Manufacturas year %s lasted %f seconds." % (y, time.time()-t0)
     del manufacturas
 
@@ -291,11 +290,11 @@ def clean(inpath, outpath, extension='csv'):
         print "Compute %s." % f
         print "Servicios main lasted %f seconds." % (time.time()-t0)
         # Write servicios
-        path_fin = join(outpath, 'Finantial')
-        for i in range(len(finantial_cols)):
+        path_fin = join(outpath, 'Financial')
+        for i in range(len(Financial_cols)):
             t0 = time.time()
             y = folders_years[i]
-            write_dataframe(servicios[finantial_cols[i]], f,
+            write_dataframe(servicios[Financial_cols[i]], f,
                             join(join(path_fin, y), 'Servicios'), extension)
             print "Servicios year %s lasted %f seconds." % (y, time.time()-t0)
 
@@ -304,7 +303,7 @@ def clean_colnames_manu(cols):
     "Clean names of the manufactures."
     # Format properly
     cols = [e.strip() for e in cols]
-    # Replace the finantial variables
+    # Replace the Financial variables
     cols_f = ['y'+''.join(e) for e in product(years_key, types_m)]
     cols_f_g = [''.join(e) for e in product(years_key, types)]
     replace_f = dict(zip(cols_f, cols_f_g))
@@ -442,4 +441,3 @@ def check_year_open(df, year):
     for i in range(m):
         logi = np.logical_or(logi, logis[:, i])
     return logi
-

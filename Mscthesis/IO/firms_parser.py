@@ -18,6 +18,7 @@ import time
 import numpy as np
 
 from pythonUtils.ProcessTools import Processer
+from pythonUtils.Logger import Logger
 
 from Mscthesis.Preprocess.preprocess_rows import filter_servicios, \
     filter_servicios_dict
@@ -43,19 +44,20 @@ class Firms_Parser(Processer):
     information.
     """
 
-    indices = None
-    finantial_bool=False
-    files = ''
-
-    def __init__(self, logfile, bool_inform=False):
-        "Instantiation of the class remembering it is a subclass of Processer."
+    def _initialization(self):
+        self.indices = None
+        self.finantial_bool = False
+        self.files = ''
         self.proc_name = "Firms parser"
         self.proc_desc = "Parser the standarize data from folder"
         self.subproc_desc = ["Parsing data",
                              "Preprocessing, formatting and filtering data"]
         self.t_expended_subproc = [0, 0]
-        self.logfile = logfile
 
+    def __init__(self, logfile, bool_inform=False):
+        "Instantiation of the class remembering it is a subclass of Processer."
+        self._initialization()
+        self.logfile = Logger(logfile) if type(logfile) == str else logfile
 
     def parse(self, parentpath=None, year=None, finantial_bool=False):
         """Parsing function which considers if we have parsed or not before."""

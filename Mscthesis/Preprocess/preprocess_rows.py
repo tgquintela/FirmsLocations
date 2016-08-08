@@ -14,10 +14,67 @@ Module to preprocess the data and filter unuseful rows.
 
 import numpy as np
 import datetime
-from pySpatialTools.Geo_tools.geo_filters import filter_uncorrect_coord_spain,\
+from geo_filters import filter_uncorrect_coord_spain,\
     filter_bool_uncorrect_coord_spain
 
 
+##################### Aligning and formatting clean data ######################
+###############################################################################
+def format_firms_data_by_nifyear(nif0, nif1, year1):
+    year0 = []
+    nif_u = set(nif0)
+    iss0, iss1 = [], []
+    for nif in nif_u:
+        indices0 = [i for i in range(len(nif0)) if nif == nif0[i]]
+        if nif in nif1:
+            indices1 = [i for i in range(len(nif1)) if nif == nif1[i]]
+            year_i1 = year1[indices1]
+            for i in range(len(year_i1)):
+                year0.append(year_i1[i])
+                iss0.append(indices0[0])
+                iss1.append(indices1[i])
+    assert(len(iss0) == len(iss1))
+    return iss0, iss1
+
+
+def align_firms_data_bynif(nif0, nif1):
+    nif_u = set(nif0)
+    iss0, iss1 = [], []
+    for nif in nif_u:
+        indices0 = [i for i in range(len(nif0)) if nif == nif0[i]]
+        if nif in nif1:
+            indices1 = [i for i in range(len(nif1)) if nif == nif1[i]]
+            iss0.append(indices0[0])
+            iss1.append(indices1[0])
+    assert(len(iss0) == len(iss1))
+    return iss0, iss1
+
+
+def align_firms_data(nif0, year0, nif1, year1):
+    assert(len(nif0) == len(year0))
+    assert(len(nif1) == len(year1))
+    nif_u = set(nif0)
+    iss0, iss1 = [], []
+    for nif in nif_u:
+        indices0 = [i for i in range(len(nif0)) if nif == nif0[i]]
+        if nif in nif1:
+            indices1 = [i for i in range(len(nif1)) if nif == nif1[i]]
+            year_i0 = year0[indices0]
+            year_i1 = year1[indices1]
+            assert(len(np.unique(year_i0)) == len(year_i0))
+            assert(len(np.unique(year_i1)) == len(year_i1))
+            for y in year_i0:
+                if y in year_i1:
+                    i_y0 = np.where(year_i0 == y)[0][0]
+                    i_y1 = np.where(year_i1 == y)[0][0]
+                    iss0.append(indices0[i_y0])
+                    iss1.append(indices1[i_y1])
+    assert(len(iss0) == len(iss1))
+    return iss0, iss1
+
+
+############################### Filter raw data ###############################
+###############################################################################
 def filter_bool_dict(empresas, bool_arrays):
     "This function filter and dictionary of data."
     ## Loop over the dictionary
