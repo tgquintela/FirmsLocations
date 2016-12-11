@@ -3,57 +3,207 @@
 Computers
 ---------
 Main computers collections which gets all the precomputers and use that data
-to compute .
+to compute.
 
 """
 
 import os
-import shelve
 import numpy as np
+
+import copy
+
+from joblib import Parallel, delayed
+import multiprocessing
+
 from pythonUtils.Logger import Logger
 from pythonUtils.ProcessTools import Processer
+from sklearn.grid_search import BaseSearchCV
+from pythonUtils.perturbation_tests.sklearn_models import \
+    Sklearn_permutation_test
+from pythonUtils.perturbation_tests.pst_models import \
+    Pst_permutation_test
 
-from sklearn import cross_validation, grid_search
-from sklearn.grid_search import GridSearchCV
-from sklearn.ensemble import RandomForestRegressor
-
-from Mscthesis.Preprocess.preprocess_rows import align_firms_data
-from Mscthesis.Preprocess.financial_utils import f_corr
+#from Mscthesis.Preprocess.financial_utils import f_corr
+from Mscthesis.IO.io_process_computations import store_model
+from precomputers import PrecomputerCollection
+from computer_processers import application_pst_sklearn_models
+from computer_processers import names_parameters_computation
+from computer_utils import get_references_intersection, join_loaded_features,\
+    get_ordered_locations, get_ordered_regions, separate_by_times
 
 
 class GeneralComputer(Processer):
-    """Factorization of computer manager class for specific model selected."""
+    """Factorization of computer manager class for specific model selected.
+    That class is used as a container of all the interaction functions with the
+    ROM-stored data.
+    """
 
-    def _initialization(self):
+    def _initialization_spec(self):
         self.files = []
-
         self.subproc_desc = [""]
         self.t_expended_subproc = [0]
+        self.proc_name = self._name
+        self.proc_desc = "Computation of models"
+        ## Spec
+        self._computer = []
 
-    def __init__(self, logfile, pathfolder, precomputers):
+    def __init__(self, logfile, pathfolder, precomputers=None, num_cores=None):
         self._initialization()
+        self._initialization_spec()
         self.pathfolder = pathfolder
-        self.logfile = Logger(logfile) if logfile == str else logfile
-        self.precomputers = precomputers
+        self.pathdata = os.path.join(pathfolder, 'Cleaned/Results')
 
+        if num_cores is None:
+            self.num_cores = multiprocessing.cpu_count()
+        elif num_cores == 0:
+            self.num_cores = 1
+        else:
+            self.num_cores = num_cores
+
+        self.logfile = Logger(logfile) if type(logfile) == str else logfile
+        if precomputers is not None:
+            self.precomputers = precomputers
+        else:
+            self.precomputers = PrecomputerCollection(logfile, pathfolder,
+                                                      old_computed=True)
+
+    ############################### COMPUTATION ###############################
+    ###########################################################################
     def compute(self, listparams):
+        """Main function to compute the models for the given parameters."""
         ## 0. Set vars
         t00 = self.setting_global_process()
         # Prepare subprocesses
         n_cases = len(listparams)
-        self.t_expended_subproc = [0 for e in range(n_cases)]
-        self.subproc_desc = [self._name+"_"+str(e) for e in range(n_cases)]
+        subprocesses = ["Read data of %s", "Compute %s", "Storing %s"]
+        self.t_expended_subproc = [[0, 0, 0] for i in range(n_cases)]
+        self.subproc_desc = [copy.copy(subprocesses) for i in range(n_cases)]
+        self._create_subprocess_hierharchy(self.subproc_desc)
 
-        ## Computations and storing
+        ## 1. Computations and storing
         for i in range(len(listparams)):
-            t0 = self.set_subprocess([0])
-            self._store(*self.compute_i(*listparams[i]))
-            self.close_subprocess([0], t0)
-        self.files = os.listdir(self.pathfolder)
+            ## Parameters
+            files_def, parameters, name_compute = listparams[i]
+            names_comb = names_parameters_computation(parameters)
+            self.subprocesses_description_setting(i, name_compute)
+
+            ## Read files and get data
+            t0 = self.set_subprocess([i, 0])
+            data = self.get_data(files_def)
+            self.close_subprocess([i, 0], t0)
+            import time
+            print 'Get data:', time.time()-t0
+            ## Compute
+            t0 = self.set_subprocess([i, 1])
+            scores, best_pars_info = self._compute_i(parameters, *data)
+            self.close_subprocess([i, 1], t0)
+            ## Storing
+            t0 = self.set_subprocess([i, 2])
+            self._store_i(scores, best_pars_info, names_comb, listparams[i])
+            self.close_subprocess([i, 2], t0)
+#            self._compute_i(*listparams[i])
+
+        self.files = os.listdir(os.path.join(self.pathdata, 'Scores'))
         self.listparams = listparams
         assert(len(self.files) == len(self.listparams))
         ## Untrack process
         self.close_process(t00)
+
+#   TODEPRECATE
+#   ###########
+#    def compute_i(self, files_def, parameters, name_compute):
+#        """Compute each needed computation testing all the required
+#        combinations of parameters.
+#        """
+#        ## Computation of the model
+##        for i in range(len(files_def)):
+#        files_feats, files_qvals, f_filter = self._get_pathfiles(files_def)
+#        ## Computation of each case
+#        scores, best_pars_info, names_comb =\
+#            self._compute_ij(files_feats, files_qvals, f_filter, parameters)
+#        ## Store the results of each case
+#        self._store_ij(scores, best_pars_info, names_comb,
+#                       files_feats, files_qvals, parameters, name_compute)
+
+    ######################### READING DATA PRECOMPUTED ########################
+    ###########################################################################
+    def _get_data_xy_ij(self, file_feats, file_qvals, f_filter):
+        """Get data for the file i of feats and the file j of qvals."""
+        ## Get data
+        # Get the features for element i
+        hashes_feats, nif_feats, year_feats, pfeatures, methodvalues_feats =\
+            self._get_features(file_feats)
+        # Get the labels for element j
+        hashes_qvals, nif_qvals, year_qvals, qvalue, methodvalues_qvals =\
+            self._get_qvals(file_qvals)
+
+        ## Align the features and the labels
+        nif_ref, year_ref, pfeatures, qvalue =\
+            get_references_intersection(nif_feats, year_feats,
+                                        pfeatures, nif_qvals,
+                                        year_qvals, qvalue)
+        nif_ref, year_ref, pfeatures, qvalue =\
+            f_filter(nif_ref, year_ref, pfeatures, qvalue)
+        ## Format properly
+        if len(pfeatures.shape) == 1:
+            pfeatures = pfeatures.reshape((len(pfeatures), 1))
+        return nif_ref, year_ref, pfeatures, qvalue
+
+    def _get_aligned_data_locations(self, nif_ref):
+        locations, years, nifs = self._get_locations()
+        locs = np.zeros((len(nif_ref), 2))
+        for i in range(len(nif_ref)):
+            locs[i] = locations[nifs.index(nif_ref[i])]
+        return locs
+
+    def _get_features(self, files_feats):
+        """Interaction with the data features stored."""
+        if type(files_feats) == list:
+            hash_feats, nif_feats, year_feats, pfeatures, methodvalues_feats =\
+                [], [], [], [], []
+            for k in range(len(files_feats)):
+                hashes_k, nif_k, year_k, pfeatures_k, methodvalues_k =\
+                    self.precomputers.precomputer_pfeatures.\
+                    _retrieve_i(files_feats[k])
+                hash_feats.append(hashes_k)
+                nif_feats.append(nif_k)
+                year_feats.append(year_k)
+                pfeatures.append(pfeatures_k)
+                methodvalues_feats.append(methodvalues_k)
+            # Join features
+            hashes, nif_feats, year_feats, pfeatures, methodvalues_feats =\
+                join_loaded_features(hash_feats, nif_feats, year_feats,
+                                     pfeatures, methodvalues_feats)
+        else:
+            print files_feats
+            hashes, nif_feats, year_feats, pfeatures, methodvalues_feats =\
+                self.precomputers.precomputer_pfeatures.\
+                _retrieve_i(files_feats)
+        return hashes, nif_feats, year_feats, pfeatures, methodvalues_feats
+
+    def _get_qvals(self, files_qvals):
+        """Interaction with the data qvals stored."""
+        hashes, nif_qvals, year_qvals, qvalue, methodvalues_qvals =\
+            self.precomputers.precomputer_qvalues.\
+            _retrieve_i(files_qvals)
+        return hashes, nif_qvals, year_qvals, qvalue, methodvalues_qvals
+
+    def _get_locations(self):
+        pathfolder = self.precomputers.precomputer_locations.pathfolder
+        namefile = os.listdir(pathfolder)[0]
+        namepath = os.path.join(pathfolder, namefile)
+        hashes, nifs, years, locations, _ =\
+            self.precomputers.precomputer_locations._retrieve_i(namepath)
+#        locations, years, nifs = get_locations(namepath)
+        return hashes, nifs, years, locations
+
+    def _get_region_data(self):
+        pathfolder = self.precomputers.precomputer_regions.pathfolder
+        namefile = os.listdir(pathfolder)[0]
+        namepath = os.path.join(pathfolder, namefile)
+        nif_reg, code_reg, reg_pars =\
+            self.precomputers.precomputer_regions._retrieve_i(namepath)
+        return nif_reg, code_reg, reg_pars
 
     def _retrieve(self):
         listfiles = os.listdir(self.pathfolder)
@@ -62,169 +212,146 @@ class GeneralComputer(Processer):
             precomputed.append(self._retrieve_i(namefile))
         return precomputed
 
+    def _get_pathfiles(self, files_def):
+        files_feats, files_qvals, f_filter = files_def
+        pfeatures_path = 'Cleaned/Precomputed/Pfeatures'
+        qvalues_path = 'Cleaned/Precomputed/Qvalues'
+        if len(files_feats.split('/')) == 1:
+            files_feats = os.path.join(os.path.join(self.pathfolder,
+                                                    pfeatures_path),
+                                       files_feats)
+        if len(files_qvals.split('/')) == 1:
+            files_qvals = os.path.join(os.path.join(self.pathfolder,
+                                                    qvalues_path),
+                                       files_qvals)
+        return files_feats, files_qvals, f_filter
 
+    ##################### AUXILIAR ADMINISTRATIVE FUNCTIONS ###################
+    ###########################################################################
+    def subprocesses_description_setting(self, i, name_compute):
+        "Set the descriptions of the subprocesses."
+        self.subproc_desc[i][0] = self.subproc_desc[i][0] % name_compute
+        self.subproc_desc[i][1] = self.subproc_desc[i][1] % name_compute
+        self.subproc_desc[i][2] = self.subproc_desc[i][2] % name_compute
+
+    def _export_administrative_information_i(self):
+        "Export information."
+        i = len(self._computer)-1
+        administrative_info = {}
+        administrative_info['subproc_desc'] = self.subproc_desc[i]
+        administrative_info['t_expended_subproc'] = self.t_expended_subproc[i]
+        administrative_info['t_perturb_tests'] =\
+            self._computer[i]._times_processes
+        administrative_info['num_cores'] = self.num_cores
+        return administrative_info
+
+
+###############################################################################
+############################### Specific models ###############################
+###############################################################################
+################################ Direct Model #################################
+###############################################################################
 class Directmodel(GeneralComputer):
-    """Based to apply directly a RandomForest model using the features given by
+    """Based to apply directly a sklearn model using the features given by
     the financial firms information.
     """
+    _name = 'Directmodel'
 
-    def compute_i(self, model, parameters_grid, f_datafin, perturbations):
-        ## Get point features
-        n_pos_feats = len(self.precomputers.precomputer_pfeatures)
-        n_pos_qvalues = len(self.precomputers.precomputer_qvalues)
-        for i in range(n_pos_feats):
-            for j in range(n_pos_qvalues):
-                nif_feats, year_feats, pfeatures, methodvalues_feats =\
-                    self.precomputers.precomputer_pfeatures[i]
-                nif_qvals, qvalue, year_qvals, methodvalues_qvals =\
-                    self.precomputers.precomputer_qvalues[j]
-                reindices_qvals = join_matrix_nif_years(nif_feats, nif_qvals,
-                                                        year_feats, year_qvals)
-                nif_qvals, qvalue, year_qvals = nif_qvals[reindices_qvals],\
-                    qvalue[reindices_qvals], year_qvals[reindices_qvals]
+    def get_data(self, files_def):
+        """Get the needed data to apply the model."""
+        files_feats, files_qvals, f_filter = self._get_pathfiles(files_def)
+        nif_ref, year_ref, pfeatures, qvalue =\
+            self._get_data_xy_ij(files_feats, files_qvals, f_filter)
+        return nif_ref, year_ref, pfeatures, qvalue
 
-                ## Compute
-                model, score = apply_sklearn_model(pfeatures, qvalue,
-                                                   model, parameters_grid)
-                self._store_i(model, score, i, j)
+    def _compute_i(self, parameters, nif_ref, year_ref, pfeatures, qvalue):
+        """Computation for a given data."""
+        ## Application of the models
+#        scores, best_pars_info =\
+#            application_sklearn_models_paral(pfeatures, qvalue, parameters,
+#                                             self.num_cores)
+        computer = Sklearn_permutation_test(self.num_cores)
+        scores, best_pars_info =\
+            computer.compute(pfeatures, qvalue, parameters)
+        self._computer.append(computer)
+        return scores, best_pars_info
 
-    def _store_i(self, model, score, i, j):
-        modelname = 'RandomForestRegressor'
-        precomputers_id = [('pfeatures', i), ('qvalues', j)]
-        store_model(self.pathfolder, model, score, modelname, precomputers_id)
+    def _store_i(self, scores, best_pars_info, names_comb, listparams):
+        """Store the results of the computations."""
+        files_def, parameters, name_compute = listparams
+        files_feats, files_qvals, _ = self._get_pathfiles(files_def)
+        precomp_files = ('pfeatures', files_feats), ('qvalues', files_qvals)
+        scores_folder = os.path.join(self.pathdata, 'Scores')
+        administrative_info = self._export_administrative_information_i()
+        store_model(scores_folder, scores, best_pars_info, names_comb,
+                    precomp_files, parameters, name_compute,
+                    administrative_info)
 
 
+############################ Location only Model ##############################
 ###############################################################################
-############################ Individual functions #############################
+class LocationOnlyModel(GeneralComputer):
+    """Based on applying a location-based model using the features given the
+    type of each location.
+    """
+    _name = "LocationOnlyModel"
+
+    def get_data(self, files_def):
+        """Get the needed data to apply the model."""
+        files_feats, files_qvals, f_filter = self._get_pathfiles(files_def)
+        nif_ref, year_ref, pfeatures, qvalue =\
+            self._get_data_xy_ij(files_feats, files_qvals, f_filter)
+        ## Locations management
+        hashes, nifs, years, locations = self._get_locations()
+        locations = get_ordered_locations(locations, years, nifs,
+                                          year_ref, nif_ref)
+        reg_nifs, reg_data, _ = self._get_region_data()
+        reg_data = get_ordered_regions(reg_data, reg_nifs, nif_ref)
+        return nif_ref, year_ref, pfeatures, qvalue, locations, reg_data
+
+    def _compute_i(self, parameters, nif_ref, year_ref, pfeatures, qvalue,
+                   locations, reg_data):
+        """Compute main function."""
+        ## Prepare inputs
+        pfeatures = separate_by_times(pfeatures, year_ref)
+        qvalue = separate_by_times(qvalue, year_ref)
+        locations = separate_by_times(locations, year_ref)
+        reg_data = separate_by_times(reg_data, year_ref)
+        nif_ref = separate_by_times(nif_ref, year_ref)
+
+        ## Apply permutations
+        computer = Pst_permutation_test(self.num_cores)
+        scores, best_pars_info =\
+            computer.compute(pfeatures, qvalue, locations, reg_data, nif_ref,
+                             parameters)
+        self._computer.append(computer)
+        return scores, best_pars_info
+
+
+########################### Location General Model ############################
 ###############################################################################
-############################ RandomForest Finance #############################
-###############################################################################
-def rf_model_computations(pathpfeats, pathqvals, pars_model, f_datafin,
-                          perturbations, samplings=None):
-    ## Prepare data
-    pfeats, qvals, year, nif = prepare_data_direct_model(pathpfeats, pathqvals)
-    ## Apply model
-    results = []
-    for i in range(len(f_datafin)):
-        results.append(loop4ftrans(f_datafin[i], pfeats, qvals))
-    return results
+class LocationGeneralModel(GeneralComputer):
+    """Based on applying a location-based inferring of features to complement
+    the element features we have on the data.
+    """
+    _name = "LocationGeneralModel"
 
+    def get_data(self, files_def):
+        """Get the needed data to apply the model."""
+        files_feats, files_qvals, f_filter = self._get_pathfiles(files_def)
+        nif_ref, year_ref, pfeatures, qvalue =\
+            self._get_data_xy_ij(files_feats, files_qvals, f_filter)
+        ## Locations management
+        locations, years, nifs = self._get_locations()
+        locations = get_ordered_locations(locations, years, nifs, nif_ref,
+                                          year_ref)
+        return nif_ref, year_ref, pfeatures, qvalue, locations
 
-def loop4ftrans(f_trans_i, pfeats, qvals):
-    ## Prepare data
-    pfeats_tr, qvals_tr = f_trans_i(pfeats, qvals)
-    ## Apply model
-    model, best_estimator_, best_score_ =\
-        apply_rf(pfeats_tr, qvals_tr, pars_model)
-    scores_pert = []
-    for p in perturbations:
-        pfeats_tr, qvals_tr = f_trans_i(p.apply2finance(pfeats), qvals)
-        score = apply_scorer(model, pfeats_tr, qvals_tr)
-        scores_pert.append(score)
-    results = {'model': model, 'best_pars': best_estimator_}
-    results['best_score'] = best_score_
-    results['scores'] = scores_pert
-    return results
-
-
-def apply_rf(x, y, parameters_grid, samplings=None):
-    rf_reg = RandomForestRegressor(oob_score=True, n_jobs=-1)
-    clf_model = GridSearchCV(rf_reg, parameters_grid)
-    clf_model.fit(x, y)
-    return clf_model, clf_model.best_estimator_, clf_model.best_score_
-
-
-def apply_scorer(model, pfeats_tr, qvals_tr):
-    score = model.score(pfeats_tr, qvals_tr)
-    return score
-
-
-def f_datafin_zeros(pfeats, qvals):
-    pfeats_tr = pfeats.copy()
-    pfeats_tr[f_corr(pfeats)] = 0.
-    return pfeats_tr, qvals
-
-
-def f_datafin_nans(pfeats, qvals):
-    pfeats_tr = pfeats.copy()
-    qvals_tr = qvals.copy()
-    logi = np.all(f_corr(pfeats), axis=1)
-    pfeats_tr = pfeats_tr[logi]
-    qvals_tr = qvals_tr[logi]
-    return pfeats_tr, qvals_tr
-
-
-def prepare_data_direct_model(pathpfeats, pathqvals):
-    db = shelve.open(pathpfeats)
-    pfeats, year_pf, nif_pf = db['pfeatures'], db['year'], db['nif']
-    db.close()
-    db = shelve.open(pathqvals)
-    qvals, year_qv, nif_qv = db['qvalue'], db['year'], db['nif']
-    db.close()
-
-    iss_pf, iss_qv = align_firms_data(nif_pf, year_pf, nif_qv, year_qv)
-    pfeats, qvals = pfeats[iss_pf], qvals[iss_qv]
-    year = year_pf[iss_pf]
-    nif = [nif_pf[i] for i in range(len(nif_pf)) if i in iss_pf]
-
-    return pfeats, qvals, year, nif
-
-
-def prepare_data_spatial_model(pathlocs, pathpfeats, pathqvals):
-    db = shelve.open(pathlocs)
-    locs, year_loc, nif_loc = db['locations'], db['year'], db['nif']
-    db.close()
-    db = shelve.open(pathpfeats)
-    pfeats, year_pf, nif_pf = db['pfeatures'], db['year'], db['nif']
-    db.close()
-    db = shelve.open(pathqvals)
-    qvals, year_qv, nif_qv = db['qvalue'], db['year'], db['nif']
-    db.close()
-
-    iss_pf, iss_qv = align_firms_data(nif_pf, year_pf, nif_qv, year_qv)
-    pfeats, qvals = pfeats[iss_pf], qvals[iss_qv]
-    year = year_pf[iss_pf]
-    nif = [nif_pf[i] for i in range(len(nif_pf)) if i in iss_pf]
-    iss, iss_loc = align_firms_data(nif, year, nif_loc, year_loc)
-    year, nif = year[iss], [nif[i] for i in range(len(nif)) if i in iss]
-    locs = locs[iss_loc]
-    return locs, pfeats, qvals, year, nif
-
-
-def spatialcounts_model_computations(pathfeats, pathqvals, pars_model,
-                                     f_data, perturbations, samplings=None):
-    ## Asserts inputs
-    assert(type(f_data) == list)
-    assert(type(perturbations) == list)
-
-    locs, pfeats, qvals, year, nif =\
-        prepare_data_spatial_model(pathplocs, pathpfeats, pathqvals)
-    locs, pfeats = locs
-
-    create_counter_types_matrix(locs, pfeats, retriever_o, pars_ret)
-
-    models = []
-
-
-def errors_finance_computation(pathdata, pars_get_data, model, perturb_info):
-    ## Pars
-    X, y = get_data_finance(pathdata, **pars_get_data)
-    model = train_model(model, X, y)
-    for i in range(len(perturb_info)):
-        scores = apply_perturbs_finance(model, perturb_info[i], y)
-    return scores
-
-
-def train_model(model, X, y):
-    correctness = f_all_corr(X)
-    model = model.fit(X, y)
-    return model
-
-
-def get_data_finance(pathdata, method, pars):
-    pass
-
-
-def apply_perturbs_finance(model, perturbs, y):
-    pass
-
+    def _compute_i(self, parameters, nif_ref, year_ref, pfeatures, qvalue,
+                   locations):
+        """Compute main function."""
+        computer = PstSklearn_permutation_test(self.num_cores)
+        scores, best_pars_info =\
+            computer.compute(pfeatures, qvalue, parameters)
+        self._computer.append(computer)
+        return scores, best_pars_info

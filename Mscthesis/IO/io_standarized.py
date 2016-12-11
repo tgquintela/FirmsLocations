@@ -71,6 +71,24 @@ def get_sector_data(pathdata):
     return typefirms, years, nifs
 
 
+def get_regions(pathdata):
+    """Get regions from pathdata."""
+    pathfolder = os.path.join(pathdata, 'Cleaned/FirmsData/atemporal')
+    filename = os.path.join(pathfolder, 'empresas')
+    df = pd.read_csv(filename, sep=';', index_col=0)
+    nifs = list(df['nif'])
+    regions = df[['cp', 'ca']].as_matrix()
+    return regions, nifs
+
+
+def compute_regions(regions, columns=None):
+    if columns is None:
+        columns = range(regions.shape[1])
+    if type(columns) == int:
+        columns = [columns]
+    return regions[:, columns]
+
+
 def get_locations(pathdata):
     locations, years, nif = [], [], []
     for y in range(2006, 2013):

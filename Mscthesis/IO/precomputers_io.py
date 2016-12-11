@@ -21,15 +21,22 @@ def generate_namefile(pathfolder, methodvalues):
     return namefile
 
 
+def generate_yearnif_hash(years, nifs):
+    hashes = [hash(nifs[i]+str(years[i])) for i in range(len(years))]
+    return hashes
+
+
 ###############################################################################
 ################################## Locations ##################################
 ###############################################################################
 def write_locations(pathfolder, key_firms, years, locs, methodvalues):
+    """Write pre-computed locations assignation."""
     ## Generate namefile
     namefile = generate_namefile(pathfolder, methodvalues)
 
     ## Writting
     db = shelve.open(namefile)
+    db['hashes'] = generate_yearnif_hash(years, key_firms)
     db['nif'] = key_firms
     db['year'] = years
     db['locations'] = locs
@@ -40,12 +47,39 @@ def write_locations(pathfolder, key_firms, years, locs, methodvalues):
 def read_locations(namefile):
     """Read pre-computed population assignation."""
     db = shelve.open(namefile)
+    hashes = db['hashes']
     key_firms = db['nif']
     year = db['year']
-    locs = db['population']
+    locs = db['locations']
     methodvalues = db['methodvalues']
     db.close()
-    return key_firms, year, locs, methodvalues
+    return hashes, key_firms, year, locs, methodvalues
+
+
+###############################################################################
+################################### Regions ###################################
+###############################################################################
+def write_regions(pathfolder, key_firms, regions, methodvalues):
+    """Write pre-computed regions assignation."""
+    ## Generate namefile
+    namefile = generate_namefile(pathfolder, methodvalues)
+
+    ## Writting
+    db = shelve.open(namefile)
+    db['nif'] = key_firms
+    db['regions'] = regions
+    db['methodvalues'] = methodvalues
+    db.close()
+
+
+def read_regions(namefile):
+    """Read pre-computed regions assignation."""
+    db = shelve.open(namefile)
+    key_firms = db['nif']
+    regions = db['regions']
+    methodvalues = db['methodvalues']
+    db.close()
+    return key_firms, regions, methodvalues
 
 
 ###############################################################################
@@ -59,6 +93,7 @@ def write_population_assignation(pathfolder, key_firms, year, population_value,
 
     ## Writting
     db = shelve.open(namefile)
+    db['hashes'] = generate_yearnif_hash(year, key_firms)
     db['nif'] = key_firms
     db['year'] = year
     db['population'] = population_value
@@ -69,12 +104,13 @@ def write_population_assignation(pathfolder, key_firms, year, population_value,
 def read_population_assignation(namefile):
     """Read pre-computed population assignation."""
     db = shelve.open(namefile)
+    hashes = db['hashes']
     key_firms = db['nif']
     year = db['year']
     population_value = db['population']
     methodvalues = db['methodvalues']
     db.close()
-    return key_firms, year, population_value, methodvalues
+    return hashes, key_firms, year, population_value, methodvalues
 
 
 ###############################################################################
@@ -140,6 +176,7 @@ def write_qvalues(pathfolder, nif, qvalue, year, methodvalues):
 
     ## Writting
     db = shelve.open(namefile)
+    db['hashes'] = generate_yearnif_hash(year, nif)
     db['nif'] = nif
     db['qvalue'] = qvalue
     db['year'] = year
@@ -150,12 +187,13 @@ def write_qvalues(pathfolder, nif, qvalue, year, methodvalues):
 def read_qvalues(namefile):
     """Read pre-computed quality values assignation."""
     db = shelve.open(namefile)
+    hashes = db['hashes']
     nif = db['nif']
     qvalue = db['qvalue']
     year = db['year']
     methodvalues = db['methodvalues']
     db.close()
-    return nif, qvalue, year, methodvalues
+    return hashes, nif, year, qvalue, methodvalues
 
 
 ###############################################################################
@@ -194,6 +232,7 @@ def write_pfeatures(pathfolder, nif, year, pfeatures, methodvalues):
 
     ## Writting
     db = shelve.open(namefile)
+    db['hashes'] = generate_yearnif_hash(year, nif)
     db['nif'] = nif
     db['year'] = year
     db['pfeatures'] = pfeatures
@@ -204,9 +243,10 @@ def write_pfeatures(pathfolder, nif, year, pfeatures, methodvalues):
 def read_pfeatures(namefile):
     """Read pre-computed neighnet computation."""
     db = shelve.open(namefile)
+    hashes = db['hashes']
     nif = db['nif']
     year = db['year']
     pfeatures = db['pfeatures']
     methodvalues = db['methodvalues']
     db.close()
-    return nif, year, pfeatures, methodvalues
+    return hashes, nif, year, pfeatures, methodvalues

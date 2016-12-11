@@ -259,8 +259,8 @@ def filter_unique_nif(servicios, manufactures):
     for i in range(len(nif_servicios)):
         if nif_servicios[i] in nif_manu:
             j = nif_manu.index(nif_servicios[i])
-            print i, j, cols_serv, cols_manu
-            print servicios.iloc[i, range(1, ncols)].as_matrix(), manufactures.iloc[j, range(1, ncols)].as_matrix()
+#            print i, j, cols_serv, cols_manu
+#            print servicios.iloc[i, range(1, ncols)].as_matrix(), manufactures.iloc[j, range(1, ncols)].as_matrix()
             logi_serv.append(i)
             logi_manu.append(j)
             fin = collapse_finance(servicios.iloc[i,  range(1, ncols)],
@@ -279,7 +279,7 @@ def collapse_finance(servicios, manufactures):
     f_corr = lambda x: np.logical_not(np.logical_or(np.isnan(x), x == 0))
     servicios = np.array(servicios).astype(float)
     manufactures = np.array(manufactures).astype(float)
-    print servicios, manufactures, type(servicios)
+#    print servicios, manufactures, type(servicios)
     corr_serv = f_corr(servicios)
     collapsed = []
     for i in range(len(servicios)):

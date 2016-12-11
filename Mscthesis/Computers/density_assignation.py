@@ -11,7 +11,7 @@ import numpy as np
 from scipy.interpolate import Rbf, bisplrep, bisplev
 
 from pySpatialTools.Retrieve import CircRetriever
-from pySpatialTools.FeatureManagement.spatialdesc_utils import\
+from pySpatialTools.api.spatialdesc_utils import\
     create_pst_interpolation
 
 #from pythonUtils.ProcessTools import Processer

@@ -1,5 +1,92 @@
 
 
+############ 2016-10-25 Computers
+###########################
+## Direct Model
+
+
+#    def _compute_ij(self, file_feats, file_qvals, f_filter, parameters):
+#        """Compute main function."""
+#        ## Get data
+#        nif_ref, year_ref, pfeatures, qvalue =\
+#            self._get_data_xy_ij(file_feats, file_qvals, f_filter)
+#        ## Names computation
+#        names_comb = names_parameters_computation(parameters)
+#        ## Application of the models
+#        scores, best_pars_info =\
+#            application_sklearn_models_paral(pfeatures, qvalue, parameters,
+#                                             self.num_cores)
+#        return scores, best_pars_info, names_comb
+
+#    def _compute_ij_paral(self, file_feats, file_qvals, f_filter, parameters):
+#        """Compute main function."""
+#        ## Get data
+#        nif_ref, year_ref, pfeatures, qvalue =\
+#            self._get_data_xy_ij(file_feats, file_qvals, f_filter)
+#        ## Names computation
+#        names_comb = names_parameters_computation(parameters)
+#
+#        ## Application of the models
+##        def f_compute_paral(pars):
+##            return application_sklearn_models(copy.copy(pfeatures),
+##                                              copy.copy(qvalue), pars)
+#        f_compute_paral = create_f_compute_paral(pfeatures, qvalue)
+#        global f_compute_paral
+#
+#        import pickle
+#        pickle.dumps(application_sklearn_models)
+#        pickle.dumps(pfeatures)
+#        pickle.dumps(qvalue)
+#        pickle.dumps(f_compute_paral)
+#
+#        parameters_paral = [([parameters[0][i]], parameters[1],
+#                             parameters[2], parameters[3])
+#                            for i in range(len(parameters[0]))]
+#        print parameters_paral
+#
+#        results = Parallel(n_jobs=self.num_cores)(delayed(f_compute_paral)(par)
+#                                                  for par in parameters_paral)
+#        print results
+#        scores, best_pars_info = results
+#
+##        scores, best_pars_info =\
+##            application_sklearn_models(pfeatures, qvalue, parameters)
+#        return scores, best_pars_info, names_comb
+
+#def create_f_compute_paral(pfeatures, qvalue):
+#    def f_compute_paral(pars):
+#        return application_sklearn_models(copy.copy(pfeatures),
+#                                          copy.copy(qvalue), pars)
+#    return f_compute_paral
+
+
+
+############ 2016-09-14 Computers
+###########################
+## Direct Model
+
+#    def compute_i(self, model, parameters_grid, f_datafin, perturbations):
+#        ## Get point features
+#        n_pos_feats = len(self.precomputers.precomputer_pfeatures)
+#        n_pos_qvalues = len(self.precomputers.precomputer_qvalues)
+#        for i in range(n_pos_feats):
+#            for j in range(n_pos_qvalues):
+#                nif_feats, year_feats, pfeatures, methodvalues_feats =\
+#                    self.precomputers.precomputer_pfeatures[i]
+#                nif_qvals, qvalue, year_qvals, methodvalues_qvals =\
+#                    self.precomputers.precomputer_qvalues[j]
+#                reindices_feats, reindices_qvals =\
+#                    join_matrix_nif_years(nif_feats, nif_qvals,
+#                                          year_feats, year_qvals)
+#                nif_qvals, qvalue, year_qvals = nif_qvals[reindices_qvals],\
+#                    qvalue[reindices_qvals], year_qvals[reindices_qvals]
+#
+#                ## Compute
+#                model, score = apply_sklearn_model(pfeatures, qvalue,
+#                                                   model, parameters_grid)
+#                self._store_i(model, score, i, j)
+
+
 
 ############ 2016-08-02 Computers
 ###########################

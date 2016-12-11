@@ -14,7 +14,7 @@ import datetime
 ################################# PARSE DATA ##################################
 ###############################################################################
 def parse_empresas(filepath):
-    "Parse function in order to parse empresas giving the parent path."
+    """Parse function in order to parse empresas giving the parent path."""
     ### Parse servicios
     servicios = parse_servicios(join(filepath, 'Servicios'))
     ### Parse manufactures
