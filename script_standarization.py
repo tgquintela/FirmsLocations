@@ -4,8 +4,8 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
 
 import numpy as np
-from Mscthesis.Preprocess.firms_preprocessor import Firms_Standarization
-from Mscthesis.Computers.precomputers import PrecomputerCollection
+from FirmsLocations.Preprocess.firms_preprocessor import Firms_Standarization
+from FirmsLocations.Computers.precomputers import PrecomputerCollection
 
 
 ## Pathpameters

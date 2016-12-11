@@ -4,7 +4,7 @@ Module which groups useful and general functions for preprocessing the data.
 """
 
 from preprocess_rows import retrieve_empresas_dict, filter_bool_dict
-from Mscthesis.IO.aux_functions import concat_from_dict
+from FirmsLocations.IO.aux_functions import concat_from_dict
 
 
 def filter_empresas(empresas, filterinfo, indices=None):

@@ -5,7 +5,8 @@ save computational power.
 """
 
 import pandas as pd
-from Mscthesis.Preprocess.preprocess_cols import cp2str
+from FirmsLocations.Preprocess.preprocess_cols import cp2str
+
 
 def read_agg(filepath):
     "Read file of aggregated info."

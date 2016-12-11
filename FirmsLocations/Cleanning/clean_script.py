@@ -11,7 +11,7 @@ Folder structure ===========
 Parent_folder
     |-- Main
         |-- Servicios
-    |-- Financial
+    |-- Finantial
         |-- year
             |-- Servicios
         |-- ...
@@ -30,13 +30,14 @@ from os.path import exists, join, isfile, isdir
 import os
 import time
 
-from Mscthesis.IO.aux_functions import parse_xlsx_sheet, write_dataframe
-from Mscthesis.Preprocess.preprocess_cols import categorize_cols
-from Mscthesis.Preprocess.comp_complementary_data import \
-    average_position_by_aggvar, counting_type_by_aggvar
-from Mscthesis.Preprocess.preprocess_general import concat_empresas
-from Mscthesis.IO.parse_data import parse_empresas
-from Mscthesis.IO.preparation_module import prepare_concatinfo
+from FirmsLocations.IO.aux_functions import parse_xlsx_sheet, write_dataframe
+from FirmsLocations.Preprocess.preprocess_cols import categorize_cols
+from FirmsLocations.Preprocess.comp_complementary_data import \
+    average_position_by_cp, counting_type_by_cp
+from FirmsLocations.Preprocess.preprocess_general import concat_empresas
+from FirmsLocations.IO.parse_data import parse_empresas
+from FirmsLocations.IO.preparation_module import prepare_concatinfo
+from FirmsLocations.IO import Firms_Parser
 
 
 ############################## GLOBAL VARIABLES ###############################
@@ -55,149 +56,7 @@ types_m = ['Act', 'ActC', 'Pasfijo', 'Pasliq', 'Treb', 'Va', 'Vdes']
 check_xlsx = lambda f: f[-5:] == '.xlsx'
 
 
-############################## GLOBAL VARIABLES ###############################
-###############################################################################
-def folder_structure(outpath):
-    "Function which checks and creates the required folder structure."
-    ## Ensure creation of needed folders
-    if not exists(outpath):
-        os.mkdir(outpath)
-    if not exists(join(outpath, 'Main')):
-        os.mkdir(join(outpath, 'Main'))
-    if not exists(join(join(outpath, 'Main'), 'Servicios')):
-        os.mkdir(join(join(outpath, 'Main'), 'Servicios'))
-    if not exists(join(outpath, 'Financial')):
-        os.mkdir(join(outpath, 'Financial'))
-    folders = os.listdir(join(outpath, 'Financial'))
-    folders_years = [str(int(e)) for e in years]
-    for f in folders_years:
-        if f not in folders:
-            os.mkdir(join(join(outpath, 'Financial'), f))
-        os.mkdir(join(join(join(outpath, 'Financial'), f), 'Servicios'))
-    return folders_years
-
-
-def get_financial_cols():
-    "Get the names of the financial columns."
-    ## Creation of the Financial cols
-    aux = []
-    for i in range(len(years_key)):
-        aux.append([''.join(e) for e in product([years_key[i]], types)])
-    Financial_cols = aux
-    return Financial_cols
-
-
-def parse_write_manufactures(inpath, outpath, extension, financial_cols,
-                             folders_years):
-    ""
-    ## Parse manufactures
-    # Start traking
-    t0 = time.time()
-    print "Start parsing manufacturas."
-    # parse manufacturas
-    manufacturas = parse_xlsx_sheet(join(inpath, 'Manufactures.xlsx'))
-    # Rename columns
-    cols = manufacturas.columns
-    newcolnames = clean_colnames_manu(cols)
-    manufacturas.columns = newcolnames
-    # Compute extra variables
-    extra = compute_extra_cols(manufacturas)
-    manufacturas = pd.concat([manufacturas, extra], axis=1)
-    # Correct coordinates
-    coords = ['ES-X', 'ES-Y']
-    manufacturas[coords] = reformat_coordinates_manu(manufacturas, coords)
-    # Categorize cols
-    manufacturas = categorize_cols(manufacturas)
-    # Separate and save
-    name = 'Manufactures.xlsx'
-    write_dataframe(manufacturas[main_cols], name,
-                    join(outpath, 'Main'), extension)
-    # Tracking task
-    print "Manufacturas main lasted %f seconds." % (time.time()-t0)
-    for i in range(len(financial_cols)):
-        t0 = time.time()
-        y = folders_years[i]
-        write_dataframe(manufacturas[financial_cols[i]], name,
-                        join(join(outpath, 'Financial'), y), extension)
-        print "Manufacturas year %s lasted %f seconds." % (y, time.time()-t0)
-    del manufacturas
-
-
-def parse_write_servicios(inpath, outpath, extension, financial_cols,
-                          folders_years):
-    ""
-    ## 1. Parse servicios
-    t0 = time.time()
-    onlyfiles = [f for f in os.listdir(join(inpath, 'Servicios'))
-                 if isfile(join(join(inpath, 'Servicios'), f))
-                 and check_xlsx(f)]
-    for f in onlyfiles:
-        # parse servicios
-        servicios = parse_xlsx_sheet(join(join(inpath, 'Servicios'), f))
-        # Rename columns
-        cols = servicios.columns
-        newcolnames = clean_colnames_servi(cols)
-        servicios.columns = newcolnames
-        # Compute extra variables
-        apertura = obtain_open_aperture_date(servicios)
-        servicios['apertura'] = apertura
-        servicios = compute_close_date_servicios(servicios)
-        ## Categorize cols
-        servicios = categorize_cols(servicios)
-        # Separate and save
-        write_dataframe(servicios[main_cols], f,
-                        join(join(outpath, 'Main'), 'Servicios'), extension)
-        print "Compute %s." % f
-        print "Servicios main lasted %f seconds." % (time.time()-t0)
-        # Write servicios
-        path_fin = join(outpath, 'Financial')
-        for i in range(len(financial_cols)):
-            t0 = time.time()
-            y = folders_years[i]
-            write_dataframe(servicios[financial_cols[i]], f,
-                            join(join(path_fin, y), 'Servicios'), extension)
-            print "Servicios year %s lasted %f seconds." % (y, time.time()-t0)
-
-
-############################# AUXILIAR FUNCTIONS ##############################
-###############################################################################
-def aggregate_by_mainvar(parentfolder, agg_var, loc_vars, type_var=None,
-                         ifwrite=True, transformation=lambda x: x):
-    """Function to aggregate variables by the selected variable considering a
-    properly structured data.
-    """
-
-    ## Parse with class the structure and return the data
-    parser = Firms_Parser(cleaned=True, logfile=join(parentfolder, 'log.log'))
-    empresas = parser.parse(parentfolder, year=2006)
-    # Transformation
-    empresas = transformation(empresas)
-    ## Aggregation
-    positions = average_position_by_cp(empresas, agg_var, loc_vars)
-    if type_var is not None:
-        types = counting_type_by_cp(empresas, agg_var, type_var)
-        df = pd.concat([positions, types], axis=1)
-        cols = {'types': list(types.columns)}
-        cols['positions'] = list(positions.columns)
-    else:
-        df = positions
-        cols = {'positions': list(positions.columns)}
-
-    ## Write dataframe
-    if ifwrite:
-        aggfolder = 'Agg_by_'+agg_var
-        if not exists(join(parentfolder, 'Aggregated')):
-            os.mkdir(join(parentfolder, 'Aggregated'))
-        if not exists(join(join(parentfolder, 'Aggregated'), aggfolder)):
-            os.mkdir(join(join(parentfolder, 'Aggregated'), aggfolder))
-
-        write_dataframe(df, 'table_agg',
-                        join(join(parentfolder, 'Aggregated'), aggfolder),
-                        'csv')
-    return df, cols
-
-
-def aux_transformation(df, lvl):
+def aux_transformation(df, lvl=2):
     "Auxiliar transformation for formatting aggregate data."
     # categorize
     df = categorize_cols(df)
@@ -207,10 +66,49 @@ def aux_transformation(df, lvl):
     return df
 
 
+def aggregate_by_mainvar(parentfolder, agg_var, loc_vars, type_var=None,
+                         ifwrite=True, transformation=lambda x: x):
+    """Function to aggregate variables by the selected variable considering a
+    properly structured data.
+    """
+
+    ## Parse with class the structure and return the data
+    parser = Firms_Parser(cleaned=True, logfile=join(parentfolder, 'log.log'))
+
+    ## Loop by years
+    for year in years:
+        empresas = parser.parse(parentfolder, year=year)
+        # Transformation
+        empresas = aux_transformation(empresas, 2)
+        ## Aggregation
+        positions = average_position_by_cp(empresas, agg_var, loc_vars)
+        if type_var is not None:
+            types = counting_type_by_cp(empresas, agg_var, type_var)
+            df = pd.concat([positions, types], axis=1)
+            cols = {'types': list(types.columns)}
+            cols['positions'] = list(positions.columns)
+        else:
+            df = positions
+            cols = {'positions': list(positions.columns)}
+
+        ## Write dataframe
+        if ifwrite:
+            aggfolder = 'Agg_by_'+agg_var
+            if not exists(join(parentfolder, 'Aggregated')):
+                os.mkdir(join(parentfolder, 'Aggregated'))
+            if not exists(join(join(parentfolder, 'Aggregated'), aggfolder)):
+                os.mkdir(join(join(parentfolder, 'Aggregated'), aggfolder))
+
+            write_dataframe(df, 'table_'+str(year),
+                            join(join(parentfolder, 'Aggregated'), aggfolder),
+                            'csv')
+    return cols
+
+
 def clean(inpath, outpath, extension='csv'):
     """Do the cleaning data from the raw initial data. It formats the data to a
     folder structure in which it is separated the main information of a company
-    with the Financial information in order to save memory and read unnecessary
+    with the finantial information in order to save memory and read unnecessary
     information for some tasks.
     """
     ## 0. Ensure creation of needed folders
@@ -220,19 +118,19 @@ def clean(inpath, outpath, extension='csv'):
         os.mkdir(join(outpath, 'Main'))
     if not exists(join(join(outpath, 'Main'), 'Servicios')):
         os.mkdir(join(join(outpath, 'Main'), 'Servicios'))
-    if not exists(join(outpath, 'Financial')):
-        os.mkdir(join(outpath, 'Financial'))
-    folders = os.listdir(join(outpath, 'Financial'))
+    if not exists(join(outpath, 'Finantial')):
+        os.mkdir(join(outpath, 'Finantial'))
+    folders = os.listdir(join(outpath, 'Finantial'))
     folders_years = [str(int(e)) for e in years]
     for f in folders_years:
         if f not in folders:
-            os.mkdir(join(join(outpath, 'Financial'), f))
-        os.mkdir(join(join(join(outpath, 'Financial'), f), 'Servicios'))
-    ## Creation of the Financial cols
+            os.mkdir(join(join(outpath, 'Finantial'), f))
+        os.mkdir(join(join(join(outpath, 'Finantial'), f), 'Servicios'))
+    ## Creation of the finantial cols
     aux = []
     for i in range(len(years_key)):
         aux.append([''.join(e) for e in product([years_key[i]], types)])
-    Financial_cols = aux
+    finantial_cols = aux
 
     ## 1. Parse manufactures
     # Start traking
@@ -258,11 +156,11 @@ def clean(inpath, outpath, extension='csv'):
                     join(outpath, 'Main'), extension)
     # Tracking task
     print "Manufacturas main lasted %f seconds." % (time.time()-t0)
-    for i in range(len(Financial_cols)):
+    for i in range(len(finantial_cols)):
         t0 = time.time()
         y = folders_years[i]
-        write_dataframe(manufacturas[Financial_cols[i]], name,
-                        join(join(outpath, 'Financial'), y), extension)
+        write_dataframe(manufacturas[finantial_cols[i]], name,
+                        join(join(outpath, 'Finantial'), y), extension)
         print "Manufacturas year %s lasted %f seconds." % (y, time.time()-t0)
     del manufacturas
 
@@ -290,11 +188,11 @@ def clean(inpath, outpath, extension='csv'):
         print "Compute %s." % f
         print "Servicios main lasted %f seconds." % (time.time()-t0)
         # Write servicios
-        path_fin = join(outpath, 'Financial')
-        for i in range(len(Financial_cols)):
+        path_fin = join(outpath, 'Finantial')
+        for i in range(len(finantial_cols)):
             t0 = time.time()
             y = folders_years[i]
-            write_dataframe(servicios[Financial_cols[i]], f,
+            write_dataframe(servicios[finantial_cols[i]], f,
                             join(join(path_fin, y), 'Servicios'), extension)
             print "Servicios year %s lasted %f seconds." % (y, time.time()-t0)
 
@@ -303,7 +201,7 @@ def clean_colnames_manu(cols):
     "Clean names of the manufactures."
     # Format properly
     cols = [e.strip() for e in cols]
-    # Replace the Financial variables
+    # Replace the finantial variables
     cols_f = ['y'+''.join(e) for e in product(years_key, types_m)]
     cols_f_g = [''.join(e) for e in product(years_key, types)]
     replace_f = dict(zip(cols_f, cols_f_g))
@@ -441,3 +339,13 @@ def check_year_open(df, year):
     for i in range(m):
         logi = np.logical_or(logi, logis[:, i])
     return logi
+
+
+def check_cleaned(path):
+    """Check if the folder given is the parentfolder of a cleaned structure
+    for the module
+    """
+    bool_1 = isdir(join(path, 'Main'))
+    bool_2 = isdir(join(path, 'Finantial'))
+    bool_3 = bool_1 and bool_2
+    return bool_3

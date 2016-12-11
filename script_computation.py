@@ -1,7 +1,7 @@
 
-from Mscthesis.Computers.precomputers import PrecomputerCollection
-from Mscthesis.Computers.computers import Directmodel, LocationGeneralModel,\
-    LocationOnlyModel
+from FirmsLocations.Computers.precomputers import PrecomputerCollection
+from FirmsLocations.Computers.computers import Directmodel, LocationOnlyModel,\
+    LocationGeneralModel
 
 
 ## Pathpameters

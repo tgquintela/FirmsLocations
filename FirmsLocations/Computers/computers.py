@@ -23,8 +23,8 @@ from pythonUtils.perturbation_tests.sklearn_models import \
 from pythonUtils.perturbation_tests.pst_models import \
     Pst_permutation_test
 
-#from Mscthesis.Preprocess.financial_utils import f_corr
-from Mscthesis.IO.io_process_computations import store_model
+#from FirmsLocations.Preprocess.financial_utils import f_corr
+from FirmsLocations.IO.io_process_computations import store_model
 from precomputers import PrecomputerCollection
 from computer_processers import application_pst_sklearn_models
 from computer_processers import names_parameters_computation

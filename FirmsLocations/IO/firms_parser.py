@@ -20,17 +20,17 @@ import numpy as np
 from pythonUtils.ProcessTools import Processer
 from pythonUtils.Logger import Logger
 
-from Mscthesis.Preprocess.preprocess_rows import filter_servicios, \
+from FirmsLocations.Preprocess.preprocess_rows import filter_servicios,\
     filter_servicios_dict
-from Mscthesis.Preprocess.preprocess_cols import cnae2str, cp2str
-from Mscthesis.Preprocess.preprocess_general import filter_empresas, \
+from FirmsLocations.Preprocess.preprocess_cols import cnae2str, cp2str
+from FirmsLocations.Preprocess.preprocess_general import filter_empresas,\
     concat_empresas, filtercols_empresas
 
-from preparation_module import prepare_filterinfo, prepare_concatinfo, \
+from preparation_module import prepare_filterinfo, prepare_concatinfo,\
     prepare_filtercolsinfo
-from aux_functions import concat_from_dict, write_dataframe_to_csv, \
+from aux_functions import concat_from_dict, write_dataframe_to_csv,\
     get_index_from_dict, parse_xlsx_sheet, check_cleaned
-from parse_data import parse_servicios, parse_servicios_columns, \
+from parse_data import parse_servicios, parse_servicios_columns,\
     parse_manufactures, parse_empresas, parse_finantial_by_year
 
 ########### Global variables needed

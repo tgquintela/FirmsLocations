@@ -13,8 +13,8 @@ from sklearn.grid_search import GridSearchCV
 from sklearn import cross_validation, grid_search
 from sklearn.ensemble import RandomForestRegressor
 
-from Mscthesis.IO.precomputers_io import generate_yearnif_hash
-from Mscthesis.Preprocess.preprocess_rows import align_firms_data
+from FirmsLocations.IO.precomputers_io import generate_yearnif_hash
+from FirmsLocations.Preprocess.preprocess_rows import align_firms_data
 
 
 ###############################################################################
